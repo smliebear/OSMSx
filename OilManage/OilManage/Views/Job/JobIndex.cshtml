@@ -1,0 +1,375 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>职位管理</title>
+
+    <link href="~/Content/layuiadmin/layui/css/layui.css" rel="stylesheet" />
+    <script src="~/Scripts/jquery-3.3.1.min.js"></script>
+    <script src="~/Content/layuiadmin/layui/layui.js"></script>
+
+    <script>
+        Select();
+        var tables;
+        //查询
+        function Select() {
+            layui.use(['table', 'laydate', 'form'], function () {
+                var table = layui.table, form = layui.form, laydate = layui.laydate; //只有执行了这一步，部分表单元素才会自动修饰成功
+                laydate.render({
+                    elem: '#CreateTime'
+                });
+                laydate.render({
+                    elem: '#UpdateTime'
+                });
+                //加载表格
+                tables = table.render({
+                    elem: '#toolbarDemo'
+                    , toolbar: '#toolbarDemo' //开启头部工具栏，并为其绑定左侧模板
+                    , url: '/Job/JobRead'
+                    , title: '职位管理数据表'
+                    , cellMinWidth: 80 //全局定义常规单元格的最小宽度，layui 2.2.1 新增
+                    , width: 1000
+                    , even: true
+                    , cols: [[
+                        { field: 'Id', title: 'ID', sort: true, hide: true }
+                        , { field: 'Name', width: '15%', title: '用户名', fixed: 'left' }
+                        , { field: 'Code', width: '15%', title: '编号', sort: true }
+                        , {
+                            field: 'CreateTime', width: '20%', title: '入职时间'
+                            , templet: function (d) {
+                                return new Date(parseInt(d.CreateTime.substr(6, 13))).toLocaleDateString();
+                            }
+                        }
+                        , {
+                            field: 'UpdateTime', width: '20%', title: '修改时间', sort: true,
+                            templet: function (d) {
+                                return new Date(parseInt(d.UpdateTime.substr(6, 13))).toLocaleDateString();
+                            }
+                        }
+                        , { fixed: 'right', title: '操作', toolbar: '#barDemo', width: '30%' }
+                    ]],
+                    page: {
+                        layout: ['limit', 'count', 'prev', 'page', 'next', 'skip'] //自定义分页布局
+                        //,curr: 5 //设定初始在第 5 页
+                        , groups: 1 //只显示 1 个连续页码
+                        , first: false //不显示首页
+                        , last: false //不显示尾页
+                    }
+                });
+                table.on('toolbar(test)', function (obj) {
+                    var checkStatus = table.checkStatus(obj.config.id);
+                    switch (obj.event) {
+                        case 'getCheckData':
+                            var data = checkStatus.data;
+                            layer.alert(JSON.stringify(data));
+                            break;
+                        case 'getCheckLength':
+                            var data = checkStatus.data;
+                            layer.msg('选中了：' + data.length + ' 个');
+                            break;
+                        case 'isAll':
+                            layer.msg(checkStatus.isAll ? '全选' : '未全选');
+                            break;
+
+                        //自定义头工具栏右侧图标 - 提示
+                        case 'LAYTABLE_TIPS':
+                            layer.alert('这是工具栏右侧自定义的一个图标按钮');
+                            break;
+                    };
+                });
+            });
+            //编辑弹框
+            layui.use('table', function () {
+                var table = layui.table;
+                //监听行工具事件
+                table.on('tool(test)', function (obj) {
+                    var data = obj.data;
+                    if (obj.event === 'del') {
+                        layer.confirm('真的删除行么', function (index) {
+                            JobDel(data.Id);
+                            layer.close(index);
+                        });
+                    } else if (obj.event === 'edit') {
+                        JobUpdate(data.Id, data.Name, data.Code, data.CreateTime, data.UpdateTime);
+                    } else if (obj.event === 'Choice') {
+                        parent.$('#Job').val(data.Name);
+                        parent.$('#HideJob').val(data.Id);
+                        var index = parent.layer.getFrameIndex(window.name);
+                        parent.layer.close(index);
+                    }
+                });
+
+            })
+        }
+
+        //模糊查询
+        function LikeSelect() {
+            var input = document.getElementById("JobName");
+            var JobName = input.value;
+            // var table = layui.table;
+            tables.reload({
+                where: {
+                    JobName: JobName,
+                }
+            })
+        }
+
+        //添加
+        function JobAdd() {
+            layui.use('layer', function () { //独立版的layer无需执行这一句
+                var $ = layui.jquery, layer = layui.layer;//独立版的layer无需执行这一句
+                empty();
+                //触发事件
+                layer.open({
+                    type: 1
+                    , offset: '20px'
+                    , title: "添加员工基本信息" //不显示标题栏
+                    , closeBtn: false
+                    , area: '700px;'
+                    , content: $("#models")
+                    , shade: 0.8
+                    , id: 'Id' //设定一个id，防止重复弹出
+                    , resize: false
+                    , btn: ['添加职位信息', '取消', '重置']
+                    , btnAlign: 'c'
+                    , moveType: 1 //拖拽模式，0或者1
+                    , yes: function (index, layero) {
+                        $.ajax({
+                            type: "post",
+                            url: "/Job/JobAdd",
+                            dataType: "json",
+                            zIndex: 500,
+                            data: {
+                                Name: $("#Name").val(),
+                                Code: $("#Code").val(),
+                                CreateTime: $("#CreateTime").val(),
+                                UpdateTime: $("#UpdateTime").val(),
+                            }, success: function (data) {
+                                if (data == true) {
+                                    layer.msg("添加成功"), {
+                                        zindex: 1000,
+                                        offset: '450px',
+                                        icon: 1,
+                                        time: 9000, //2s后自动关闭
+                                    };
+                                    Select();
+
+                                }
+                                else {
+                                    if (data == true) {
+                                        layer.msg("添加失败");
+                                        Select();
+                                    }
+                                }
+                            }
+                        })
+                        layer.close(layer.index);
+                    }
+                    , btn3: function (index) {
+                        //重置，清空
+                        empty();
+                        return false; //开启该代码可禁止点击该按钮关闭
+                    }
+
+
+                });
+            })
+        }
+
+        //删除
+        function JobDel(id) {
+            layui.use(['table'], function () {
+                var table = layui.table;
+                $.ajax({
+                    url: "/Job/JobDel",
+                    type: "POST",
+                    dataType: "json",
+                    data: {
+                        id: id,
+                    },
+                    success: function (json) {
+                        if (json != null) {
+                            layer.msg("删除成功");
+                            Select();
+                        } else {
+                            layer.msg("删除失败");
+                        }
+                    },
+                    //error: function (res) {
+                    //    alert(res);
+                    //}
+                });
+            })
+        }
+
+        //修改
+        function JobUpdate(Id, Name, Code, CreateTime, UpdateTime) {
+            var $ = layui.jquery, layer = layui.layer;
+            $("#Code").val(Code);
+            $("#Name").val(Name);
+            $("#CreateTime").val(CreateTime);
+            $("#UpdateTime").val(UpdateTime);
+
+            layui.use('form', function () {
+                var form = layui.form; //只有执行了这一步，部分表单元素才会自动修饰成功
+                form.render();
+            });
+            //触发事件
+            layui.use('layer', function () { //独立版的layer无需执行这一句
+                var $ = layui.jquery, layer = layui.layer//独立版的layer无需执行这一句
+                //layer.msg('hello');
+                //触发事件
+                layer.open({
+                    type: 1
+                    , offset: '20px'
+                    , title: "修改职位基本信息" //不显示标题栏
+                    , closeBtn: false
+                    , area: '700px;'
+                    , content: $("#models")
+                    , shade: 0.8
+                    , id: 'Id' //设定一个id，防止重复弹出
+                    , resize: false
+                    , btn: ['修改职位信息', '取消', '重置']
+                    , btnAlign: 'c'
+                    , moveType: 1 //拖拽模式，0或者1
+                    , btn1: function (index, layero) {
+                        $.ajax({
+                            type: "post",
+                            url: "/Job/JobUpdate",
+                            dataType: "json",
+                            data: {
+                                Id: Id,
+                                Name: $("#Name").val(),
+                                Code: $("#Code").val(),
+                                CreateTime: $("#CreateTime").val(),
+                                UpdateTime: $("#UpdateTime").val(),
+                                JobId: $("#Job").val(),
+                            }, success: function (data) {
+                                if (data == true) {
+                                    layer.msg("修改成功"), {
+                                        zindex: 1200,
+                                        offset: '450px',
+                                        icon: 1,
+                                        time: 5000
+                                    };
+                                    Select();
+                                }
+                                else {
+                                    layer.msg("修改失败，密码错误");
+                                }
+                                layer.closeAll();
+                            }
+
+                        })
+                    }
+                    , btn3: function () {
+                        //重置，清空
+                        empty();
+                        return false; //开启该代码可禁止点击该按钮关闭
+                    }
+                });
+            })
+        }
+
+        //重置
+        function empty() {
+            $("#Name").val("");
+            $("#Code").val("");
+            $("#CreateTime").val("");
+            $("#UpdateTime").val("");
+        }
+    </script>
+</head>
+<body>
+    <div class="layui-layer-title layui-bg-blue" style="padding-left: 5px;">
+        <label>基础信息维护 </label>
+        <i class="layui-icon"></i>
+        <label>职位管理</label>
+    </div>
+    <div>
+        <div class=" layui-form-item">
+            <div class="layui-inline" pane>
+                <label class="layui-form-label">姓名:</label>
+                <div class="layui-input-inline">
+                    <input id="JobName" type="text" name="Name" lay-verify="title" autocomplete="off" class="layui-input" placeholder="请输入姓名" value="">
+                </div>
+                <button type="button" class="layui-btn layui-icon layui-bg-blue" data-method="notice"><i onclick="LikeSelect()">&#xe615;查询</i></button>
+            </div>
+        </div>
+        <table class="layui-hide" id="test"></table>
+
+        <script type="text/html" id="toolbarDemo" lay-filter="test">
+            <div class="layui-btn-container">
+                <button type="button" class="layui-btn layui-btn-sm layui-btn layui-btn-normal" data-method="notice"><i class="layui-icon" onclick="JobAdd()"></i></button>
+                <button type="button" class="layui-btn layui-btn-sm layui-btn layui-btn-normal"><i class="layui-icon"></i></button>
+                <button type="button" class="layui-btn layui-btn-sm layui-btn layui-btn-normal"><i class="layui-icon"></i></button>
+                <button type="button" class="layui-btn layui-btn-sm layui-btn layui-btn-normal"><i class="layui-icon"></i></button>
+
+            </div>
+        </script>
+
+
+
+        @*添加/修改信息，在页面隐藏*@
+        <div id="models" hidden="hidden" style="margin:10px;">
+            <form id="AddUpdate" class="layui-form layui-form-pane">
+                <div class="layui-form-item">
+                    <div class="layui-inline">
+                        <label class="layui-form-label">职位名称</label>
+                        <div class="layui-input-inline">
+                            <input id="Name" type="text" name="title" lay-verify="title" autocomplete="off" placeholder="请输入职位名称" class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-inline">
+                        <label class="layui-form-label">职位代码</label>
+                        <div class="layui-input-inline">
+                            <input id="Code" type="text" name="title" lay-verify="title" autocomplete="off" placeholder="请输入职位代码" class="layui-input">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="layui-form-item">
+                    <div class="layui-inline">
+                        <label class="layui-form-label">入职时间</label>
+                        <div class="layui-input-inline">
+                            <input id="CreateTime" type="text" name="date" lay-verify="date" placeholder="yyyy-MM-dd" autocomplete="off" class="layui-input">
+                        </div>
+                    </div>
+
+
+                    <div class="layui-inline">
+                        <label class="layui-form-label">修改时间</label>
+                        <div class="layui-input-inline">
+                            <input id="UpdateTime" type="text" name="date" lay-verify="date" placeholder="yyyy-MM-dd" autocomplete="off" class="layui-input">
+                        </div>
+                    </div>
+                </div>
+
+
+            </form>
+        </div>
+
+        <script type="text/html" id="barDemo">
+            <div class="layui-btn-group">
+                @*<a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a>
+                    <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除</a>*@
+                @if (ViewBag.Choice == "yes")
+                {
+                    <button type="button" class="layui-btn layui-btn-sm" lay-event="edit"><i class="layui-icon">编辑</i></button>
+                    <button type="button" class="layui-btn layui-btn-sm" lay-event="edit"><i class="layui-icon">删除</i></button>
+                }
+                else
+                {
+                    <button type="button" class="layui-btn layui-btn-sm" lay-event="Choice" title="选择"><i class="layui-icon">选择</i></button>
+                }
+            </div>
+        </script>
+    </div>
+</body>
+</html>

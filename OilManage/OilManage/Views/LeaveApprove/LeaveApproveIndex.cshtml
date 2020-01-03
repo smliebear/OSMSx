@@ -1,0 +1,408 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>LeaveApproveIndex</title>
+    <link href="~/Content/layuiadmin/layui/css/layui.css" rel="stylesheet" />
+    <script src="~/Scripts/jquery-3.3.1.js"></script>
+    <script src="~/Content/layuiadmin/layui/layui.js"></script>
+    <script>
+        
+        Select();
+        var tables;
+        function Select() {
+            layui.use(['table', 'laydate', 'form'], function () {
+                var table = layui.table, laydate = layui.laydate;
+                //时间表格d
+                var form = layui.form; //只有执行了这一步，部分表单元素才会自动修饰成功
+                laydate.render({
+                    elem: '#CreateTime'
+                });
+                //加载表格
+                tables = table.render({
+                    elem: '#test'
+                    , toolbar: true //开启头部工具栏，并为其绑定左侧模板
+                    , url: '/LeaveApprove/LeaveApproveRead'
+                    , title: '用户数据表'
+                    , cellMinWidth: 80 //全局定义常规单元格的最小宽度，layui 2.2.1 新增
+                    , even: true
+                    , cols: [[
+                        { field: 'Id', width: 120, title: 'ID', sort: true, hide: true }
+                        , { field: 'No', width: 180, title: '编号', sort: true }
+                        , { field: 'StaffName', width: 120, title: '用户名' }
+                        , { field: 'JobName', width: 120, title: '岗位' }
+                        , { field: 'JobId', width: 120, title: '岗位ID', hide: true }
+                        , {
+                            field: 'LeaveType', width: 100, title: '离职类别'
+                            , templet: function (d) {
+                                if (d.LeaveType == 1)
+                                    return '辞职';
+                                else {
+                                    return '辞退';
+                                }
+                            }
+                        }
+                        , { field: 'Reason', title: '离职原因', width: 150, hide: true}
+                        , { field: 'CreateTime', title: '申请离职日期', width: 150, hide: true    }
+                        , { field: 'HandoverSatffId', title: '工作交接人Id', width: 150, hide: true }
+                        , { field: 'ApplyPersonId', title: '工作交接人Id', width: 150, hide: true }
+                        , { field: 'ExplanationHandover', title: '请求人', width: 150, hide: true }
+                        , { fixed: 'right', title: '操作', toolbar: '#barDemo', width: 150  }
+                        
+                    ]],
+                    page: {
+                        layout: ['limit', 'count', 'prev', 'page', 'next', 'skip'] //自定义分页布局
+                        //,curr: 5 //设定初始在第 5 页
+                        , groups: 1 //只显示 1 个连续页码
+                        , first: false //不显示首页
+                        , last: false //不显示尾页
+                    }
+                });
+
+                //编辑弹框
+                layui.use('table', function () {
+                    var table = layui.table;
+                    //监听行工具事件
+                    table.on('tool(test)', function (obj) { //tool不变
+                        var data = obj.data;
+                        if (obj.event === 'del') {
+                            layer.confirm('真的删除行么', function (index) {
+                                LeaveDelete(data.Id);
+                            });
+                        } else if (obj.event === 'edit') {
+                            LeaveUpdate(data.Id, data.StaffName, data.JobName, data.JobId, data.LeaveType, data.Reason, data.ExplanationHandover, data.HandoverSatffId, data.CreateTime);
+                        } else if (obj.event === 'submits') {
+                            layer.confirm('真的提交行么(发起后不可更改)', function () {
+                                LeaveSubmit(data.Id, data.ApplyPersonId, data.No);
+                            }); 
+                        }
+                    });
+
+                });
+
+                $("#btnJob").on("click", function () {
+                    layer.open({
+                        type: 2,
+                        content: "/Job/JobIndex?Choice=true",
+                        area: ["850px", "500px"],
+                        title: "选择职位",
+                        end: function (Job) {
+
+                        }
+                    });
+                    return false;
+                })
+
+                $("#btnperson").on("click", function () {
+                    layer.open({
+                        type: 2,
+                        content: "/Staff/Index?Choice=true",
+                        area: ["850px", "500px"],
+                        title: "选择职位",
+                        end: function (Job) {
+
+                        }
+                    });
+                    return false;
+                })
+            })
+        }
+
+        //添加
+        function LeaveAdd() {
+            layui.use('layer', function () { //独立版的layer无需执行这一句
+                var $ = layui.jquery, layer = layui.layer//独立版的layer无需执行这一句
+                //layer.msg('hello');
+                //LeaveType=$('#LeaveType input[name="t"]:checked ').val()
+                //"like[write]": true //复选框选中状态
+                layer.open({
+                    type: 1
+                    , offset: '20px'
+                    , title: "添加离职信息" //不显示标题栏
+                    , content: $("#models")
+                    , closeBtn: false
+                    , area: '700px;'
+                    , shade: 0.8
+                    , id: 'Id' //设定一个id，防止重复弹出
+                    , resize: false
+                    , btn: ['添加离职信息', '取消']
+                    , btnAlign: 'c'
+                    , moveType: 1 //拖拽模式，0或者1
+                    , btn1: function (index, layero) {
+                    $.ajax({
+                        type: "post",
+                        url: "/LeaveApprove/LeaveApproveAdd",
+                        dataType: "json",
+                        zIndex: 500,
+                        data: {
+                            StaffName: $("#StaffName").val(),
+                            JobId: $("#HideJob").val(),
+                            LeaveType: $('#LeaveType input[name="Leave"]:checked ').val(),
+                            CreateTime: $("#CreateTime").val(),
+                            Reason: $("#Reason").val(),
+                            ExplanationHandover: $("#ExplanationHandover").val(),
+                            HandoverSatffId: $("#HidePeson").val(),
+                        }, success: function (data) {
+                            if (data == true) {
+                                layer.msg("添加成功"), {
+                                    zindex: 1000,
+                                    offset: '450px',
+                                    icon: 1,
+                                    time: 5000, //2s后自动关闭
+                                };
+                                layer.closeAll();
+                                select();
+                            }
+                            else {
+                                layer.closeAll();
+                                if (data == true) {
+                                    layer.msg("添加成功"), {
+                                        zindex: 1000,
+                                        offset: '450px',
+                                        icon: 1
+                                    };
+                                    layer.closeAll();
+                                    select();
+                                }
+                            }
+                        }
+                        })
+                    }
+                    , btn3: function (index, layero) {
+                        //重置，清空
+                        empty();
+                        return false; //开启该代码可禁止点击该按钮关闭
+                    }
+                });
+            })
+        }
+
+        //修改
+        function LeaveUpdate(Id, StaffName, JobId  , JobName, LeaveType, Reason, ExplanationHandover, HandoverSatffId, CreateTime) {
+            
+            var $ = layui.jquery, layer = layui.layer;
+            $("#HideJob").val(JobName);
+            $("#StaffName").val(StaffName);
+            $("#Job").val(JobId);
+            $("#LeaveType").val(LeaveType);
+            $("#Reason").val(Reason);
+            $("#ExplanationHandover").val(ExplanationHandover);
+            //$("#HandoverSatffName").val(HandoverSatffId);
+            $("#CreateTime").val(CreateTime);
+            $.ajax({
+                type: "post",
+                url: "/LeaveApprove/LeaveApproveapartRead",
+                dataType: "json",
+                data: {
+                    HandoverSatffName: HandoverSatffId,
+                }, success: function (data) {
+                    //将list第一行数据赋值给input框
+                    $("#HandoverSatffName").val(data[0].Name);
+                    $("#HidePeson").val(data[0].Id);
+                
+                }
+            })
+            layui.use('form', function () {
+                var form = layui.form; //只有执行了这一步，部分表单元素才会自动修饰成功
+                form.render();
+            });
+            //触发事件
+            layui.use('layer', function () { //独立版的layer无需执行这一句
+                var $ = layui.jquery, layer = layui.layer//独立版的layer无需执行这一句
+                //layer.msg('hello');
+                //触发事件
+                layer.open({
+                    type: 1
+                    , offset: '20px'
+                    , title: "修改员工基本信息" //不显示标题栏
+                    , closeBtn: false
+                    , area: '700px;'
+                    , content: $("#models")
+                    , shade: 0.8
+                    , id: 'Id' //设定一个id，防止重复弹出
+                    , resize: false
+                    , btn: ['修改员工信息', '取消']
+                    , btnAlign: 'c'
+                    , moveType: 1 //拖拽模式，0或者1
+                    , btn1: function (index, layero) {
+                        $.ajax({
+                            type: "post",
+                            url: "/LeaveApprove/LeaveApproverUpdate",
+                            dataType: "json",
+                            data: {
+                                Id: Id,
+                                StaffName: $("#StaffName").val(),
+                                JobId: $("#HideJob").val(),
+                                LeaveType: $('#LeaveType input[name="Leave"]:checked ').val(),
+                                CreateTime: $("#CreateTime").val(),
+                                Reason: $("#Reason").val(),
+                                ExplanationHandover: $("#ExplanationHandover").val(),
+                                HandoverSatffId: $("#HidePeson").val(),
+                            }, success: function (data) {
+                                if (data == true) {
+                                    layer.msg("修改成功"), {
+                                        zindex: 1200,
+                                        offset: '450px',
+                                        icon: 1,
+                                        time: 5000
+                                    };
+                                    layer.closeAll();
+                                    Select();
+                                }
+                                else {
+                                    layer.msg("修改失败，密码错误");
+                                    layer.closeAll();
+                                }
+                            }
+                        })
+                    }
+                });
+            })
+        }
+
+        //删除
+        function LeaveDelete(Id) {
+            layui.use('layer', function () { //独立版的layer无需执行这一句
+                var $ = layui.jquery, layer = layui.layer//独立版的layer无需执行这一句
+                        $.ajax({
+                            type: "post",
+                            url: "/LeaveApprove/LeaveApproverDel",
+                            dataType: "json",
+                            zIndex: 500,
+                            data: {
+                               Id:Id,
+                            }, success: function (data) {
+                                if (data == true) {
+                                    layer.msg("删除成功");
+                                    Select();
+                                }
+                                else {
+                                        layer.msg("删除失败"); 
+                                }
+                            }
+                });
+            })
+        }
+
+        //发起
+        function LeaveSubmit(Id, ApplyPersonId, No) {
+            $.ajax({
+                type: "post",
+                url: "/LeaveApprove/LeaveApproverSubmitAdd",
+                dataType: "json",
+                zIndex: 500,
+                data: {
+                    LeaveId: Id,
+                    ApplyPersonId: ApplyPersonId,
+                    No: No,
+                }, success: function (data) {
+                    if (data == true) {
+                        layer.msg("发起成功")
+                        Select();
+                    } else {
+                        layer.msg("发起失败")
+                        Select();
+                    }
+                }
+            });
+        }
+    </script>
+</head>
+<body>
+    <div class="layui-layer-title layui-bg-blue" style="padding-left: 5px;">
+        <label>加油站日常 </label>
+        <i class="layui-icon"></i>
+        <label>员工离职申请</label>
+        <button type="button" class="layui-btn layui-btn-sm" data-method="notice"><i class="layui-icon" onclick="LeaveAdd()">添加离职信息</i></button>
+    </div>
+
+    <div>
+        <table class="layui-hide" id="test" lay-filter="test"></table>
+    </div>
+
+    <script type="text/html" id="barDemo">
+        <a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a>
+        <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除</a>
+        <a class="layui-btn layui-btn-warm layui-btn-xs" lay-event="submits">发起</a>
+    </script>
+
+    @*添加/修改信息，在页面隐藏*@
+    <div id="models" hidden="hidden" style="margin:10px;">
+        <form id="AddUpdate" class="layui-form layui-form-pane">
+            @* 姓名/岗位 *@
+            <div class="layui-form-item">
+                <div class="layui-inline">
+                    <label class="layui-form-label">员工姓名</label>
+                    <div class="layui-input-inline">
+                        <input id="StaffName" type="text" name="title" lay-verify="title" autocomplete="off" placeholder="请输入姓名" class="layui-input">
+                    </div>
+                </div>
+
+                <div class="layui-inline">
+                    <button id="btnJob" class="layui-btn layui-btn-normal">岗位</button>
+                    <div class="layui-input-inline">
+                        <input id="Job" type="text" name="username" lay-verify="required" class="layui-input" />
+                    </div>
+                </div>
+            </div>
+
+            @* 离职类别/离职日期 *@
+            <div class="layui-form-item">
+                <div class="layui-inline">
+                    <label class="layui-form-label">离职类别</label>
+                    <div class="layui-input-inline" id="LeaveType">
+                        <input type="radio" id="Leave" lay-filter="sex" name="Leave" value="1" title="辞职" checked="">
+                        <input type="radio" id="Leaved" lay-filter="sex" name="Leave" value="0" title="辞退">
+                    </div>
+                </div>
+
+                <div class="layui-inline">
+                    <label class="layui-form-label">申请离职日期</label>
+                    <div class="layui-input-inline">
+                        <input id="CreateTime" type="text" name="date" lay-verify="date" placeholder="yyyy-MM-dd" autocomplete="off" class="layui-input">
+                    </div>
+                </div>
+            </div>
+
+            @* 离职原因 *@
+            <div class="layui-form-item">
+                <div class="layui-inline">
+                    <label class="layui-form-label">离职原因</label>
+                    <div class="layui-input-block">
+                        <input id="Reason" type="text" name="username" lay-verify="required" class="layui-input" />
+                    </div>
+                </div>
+
+
+                @* 工作交接说明 *@
+                <div class="layui-inline">
+                    <label class="layui-form-label">工作交接说明</label>
+                    <div class="layui-input-block">
+                        <input id="ExplanationHandover" type="text" name="username" lay-verify="required" class="layui-input" />
+                    </div>
+
+                </div>
+            </div>
+
+            @* 交接人 *@
+            <div class="layui-form-item">
+                <div class="layui-inline">
+                    <button id="btnperson" class="layui-btn layui-btn-normal">交接人</button>
+                    <div class="layui-input-inline">
+                        <input id="HandoverSatffName" type="text" name="username" lay-verify="required" class="layui-input" />
+                    </div>
+                </div>
+            </div>
+
+        </form>
+    </div>
+    <input id="HideJob" hidden="hidden" />
+    <input id="HidePeson" hidden="hidden" />
+</body>
+</html>

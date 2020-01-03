@@ -1,0 +1,364 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>RoleIndex</title>
+    <link href="~/Content/layuiadmin/layui/css/layui.css" rel="stylesheet" />
+    <script src="~/Scripts/jquery-3.3.1.js"></script>
+    <script src="~/Content/layuiadmin/layui/layui.js"></script>
+
+    <script>
+        Select();
+        var tables;
+        //查询表格
+        function Select() {
+            layui.use(['table', 'laydate', 'form'], function () {
+                var table = layui.table, laydate = layui.laydate;
+                //时间表格
+                var form = layui.form; //只有执行了这一步，部分表单元素才会自动修饰成功
+                //加载表格
+                tables = table.render({
+                    elem: '#test'
+                    , toolbar: '#toolbarDemo' //开启头部工具栏，并为其绑定左侧模板
+                    , toolbar: false //开启头部工具栏，并为其绑定左侧模板
+                    , url: '/Role/RoleRead'
+                    , title: '角色权限表'
+                    , cellMinWidth: 80 //全局定义常规单元格的最小宽度，layui 2.2.1 新增
+                    , even: true
+                    , cols: [[
+                        { type: 'checkbox' }
+                        , { field: 'Id', title: 'ID', sort: true, hide: true }
+                        , { field: 'Name', width: '25%', title: '角色名称' }
+                        , { field: 'Code', width: '25%', title: '角色代码', sort: true }
+                        , { fixed: 'right', title: '操作', toolbar: '#barDemo', width: '25%' }
+
+                    ]],
+                    page: {
+                        layout: ['limit', 'count', 'prev', 'page', 'next', 'skip'] //自定义分页布局
+                        //,curr: 5 //设定初始在第 5 页
+                        , groups: 1 //只显示 1 个连续页码
+                        , first: false //不显示首页
+                        , last: false //不显示尾页
+                    }
+                });
+
+                var url = location.search;
+                var Id = url.split("=")[2];
+                $("#hideStaff").val(Id);
+                if (Id != null) {
+                    ////重载
+                    tables.reload({
+                        where: {
+                            Id: url.split("=")[2]
+                        }
+                        , page: {
+                            curr: 1 //重新从第 1 页开始
+                        }
+                    })
+                }
+
+            });
+
+            //编辑弹框
+            layui.use('table', function () {
+                var table = layui.table;
+                //监听行工具事件
+                table.on('tool(test)', function (obj) {
+                    var data = obj.data;
+                    if (obj.event === 'Del') {
+                        layer.confirm('真的删除行么', function (index) {
+                            Delete(data.Id);
+                            layer.close(index);
+                        })
+                    } else if (obj.event === 'Update') {
+                        Update(data.Id, data.Name, data.Code);
+                    } else if (obj.event === 'EditRole') {
+
+                        EditRole(data.Id);
+                    }
+                });
+            })
+
+        }
+
+        //设置角色
+        function EditRole(Id) {
+            layui.use('layer', function () { //独立版的layer无需执行这一句
+                var $ = layui.jquery, layer = layui.layer//独立版的layer无需执行这一句
+                //角色管理查询
+
+                //触发事件
+                layer.open({
+                    type: 2
+                    , offset: '20px'
+                    , title: "设置角色" //不显示标题栏
+                    , closeBtn: false
+                    , area: ['900px', '500px']
+                    , content: "/SystemModel/SystemModelIndex?Choice=true&RId=" + Id + ""
+                    , shade: 0.8
+                    , id: 'Id' //设定一个id，防止重复弹出
+                    , resize: false
+                    , btnAlign: 'c'
+                    , moveType: 1 //拖拽模式，0或者1
+
+                })
+            })
+        }
+
+        //修改角色权限
+        function RoleChoice() {
+            //获取角色ID
+            var table = layui.table; var layer = layui.layer;
+            var checkStatus = table.checkStatus('test');   //获取选中
+            var strId = "";
+            //拼接RoleId字符串
+            for (var i = 0; i < checkStatus.data.length; i++) {
+                strId += checkStatus.data[i].Id+",";
+            };
+            $.ajax({
+                type: "post",
+                url: "/Role/RoleChoice",
+                dataType: "json",
+                zIndex: 500,
+                data: {
+                    Id: strId,
+                    StaffId: $("#hideStaff").val(),
+                }
+            })
+            parent.layer.closeAll();
+        }
+
+        //模糊查询
+        function LikeSelect() {
+            var input = document.getElementById("SelectName");
+            var Code = input.value;
+            var input = document.getElementById("SelectCode");
+            var Name = input.value;
+            // var table = layui.table;
+            tables.reload({
+                where: {
+                    Code: Code,
+                    Name: Name
+                }
+            })
+
+        }
+
+        //删除
+        function Delete(Id) {
+            layui.use(['table'], function () {
+                var table = layui.table;
+                $.ajax({
+                    url: "/Role/RoleDel",
+                    type: "POST",
+                    dataType: "json",
+                    data: {
+                        Id: Id,
+                    },
+                    success: function (json) {
+                        if (json != null) {
+                            layer.msg("删除成功");
+                            Select();
+                        } else {
+                            layer.msg("删除失败");
+                        }
+                    },
+                    error: function (res) {
+                        alert(res);
+                    }
+                });
+            })
+        }
+
+        //修改
+        function Update(Id, Name, Code) {
+            var $ = layui.jquery, layer = layui.layer;
+            $("#Name").val(Name);
+            $("#Code").val(Code);
+            layui.use('form', function () {
+                var form = layui.form; //只有执行了这一步，部分表单元素才会自动修饰成功
+                form.render();
+            });
+            layui.use('layer', function () { //独立版的layer无需执行这一句
+                var $ = layui.jquery, layer = layui.layer//独立版的layer无需执行这一句
+                // alert(1);
+                //触发事件
+                layer.open({
+                    type: 1
+                    , offset: '20px'
+                    , title: "修改权限信息" //不显示标题栏
+                    , closeBtn: false
+                    , area: '700px;'
+                    , content: $("#models")
+                    , shade: 0.8
+                    , id: 'Id' //设定一个id，防止重复弹出
+                    , resize: false
+                    , btn: ['修改权限信息', '取消']
+                    , btnAlign: 'c'
+                    , moveType: 1 //拖拽模式，0或者1
+                    , btn1: function (index, layero) {
+                        $.ajax({
+                            type: "post",
+                            url: "/Role/RoleUpdate",
+                            dataType: "json",
+                            data: {
+                                Id: Id,
+                                Name: $("#Name").val(),
+                                Code: $("#Code").val(),
+                            }, success: function (data) {
+                                if (data == true) {
+                                    layer.msg("修改成功"), {
+                                        zindex: 1200,
+                                        offset: '450px',
+                                        icon: 1,
+                                        time: 5000
+                                    };
+                                    layer.closeAll();
+                                    Select();
+                                }
+                                else {
+                                    layer.msg("修改失败，密码错误");
+                                    layer.closeAll();
+                                }
+                            }
+                        })
+                    }
+                });
+            })
+        }
+
+        //添加
+        function RoleAdd() {
+            var $ = layui.jquery, layer = layui.layer;
+            layui.use('layer', function () { //独立版的layer无需执行这一句
+                var $ = layui.jquery, layer = layui.layer//独立版的layer无需执行这一句
+                //layer.msg('hello');
+                //触发事件
+                layer.open({
+                    type: 1
+                    , offset: '20px'
+                    , title: "添加权限信息" //不显示标题栏
+                    , closeBtn: false
+                    , area: '700px;'
+                    , content: $("#models")
+                    , shade: 0.8
+                    , id: 'Id' //设定一个id，防止重复弹出
+                    , resize: false
+                    , btn: ['添加权限信息', '取消']
+                    , btnAlign: 'c'
+                    , moveType: 1 //拖拽模式，0或者1
+                    , btn1: function (index, layero) {
+                        $.ajax({
+                            type: "post",
+                            url: "/Role/RoleAdd",
+                            dataType: "json",
+                            data: {
+                                Name: $("#Name").val(),
+                                Code: $("#Code").val(),
+                            }, success: function (data) {
+                                if (data == true) {
+                                    layer.msg("添加成功"), {
+                                        zindex: 1200,
+                                        offset: '450px',
+                                        icon: 1,
+                                        time: 5000
+                                    };
+                                    layer.closeAll();
+                                    Select();
+                                }
+                                else {
+                                    layer.msg("修改失败");
+                                    layer.closeAll();
+                                }
+                            }
+                        })
+                    }
+                });
+            })
+        }
+    </script>
+
+</head>
+<body>
+    @if (ViewBag.Choice == "no")
+    {
+        <div class="layui-layer-title layui-bg-blue" style="padding-left: 5px;">
+            <label>系统设置 </label>
+            <i class="layui-icon"></i>
+            <label>角色权限</label>
+            <button type="button" class="layui-btn layui-btn-sm" data-method="notice"><i class="layui-icon" onclick="RoleAdd()">添加</i></button>
+        </div>
+    }
+
+    @* 题头 *@
+    <div class=" layui-form-item">
+        <div class="layui-inline" pane>
+            <label class="layui-form-label">角色名称:</label>
+            <div class="layui-input-inline">
+                <input id="SelectName" type="text" name="Name" lay-verify="title" autocomplete="off" class="layui-input" placeholder="请输入角色名称" value="">
+            </div>
+            <label class="layui-form-label">角色代码:</label>
+            <div class="layui-input-inline">
+                <input id="SelectCode" type="text" name="Name" lay-verify="title" autocomplete="off" class="layui-input" placeholder="请输入角色代码" value="">
+            </div>
+            <button type="button" class="layui-btn layui-icon layui-bg-blue" data-method="notice"><i onclick="LikeSelect()">&#xe615;查询</i></button>
+
+            @if (ViewBag.Choice == "yes")
+            {
+                <button type="button" class="layui-btn layui-icon layui-bg-blue" data-method="notice"><i onclick="RoleChoice()">&#xe615;选择</i></button>
+            }
+        </div>
+    </div>
+
+    <script type="text/html" id="toolbarDemo" lay-filter="test">
+        <div class="layui-btn-container">
+            <button type="button" class="layui-btn layui-btn-sm layui-btn layui-btn-normal" data-method="notice"><i class="layui-icon" onclick="Staffframe()"></i></button>
+            <button type="button" class="layui-btn layui-btn-sm layui-btn layui-btn-normal"><i class="layui-icon"></i></button>
+            <button type="button" class="layui-btn layui-btn-sm layui-btn layui-btn-normal"><i class="layui-icon"></i></button>
+            <button type="button" class="layui-btn layui-btn-sm layui-btn layui-btn-normal"><i class="layui-icon"></i></button>
+
+        </div>
+    </script>
+
+    <div>
+        <table id="test" lay-filter="test"></table>
+    </div>
+
+    @if (ViewBag.Choice == "no")
+    {
+        <script type="text/html" id="barDemo">
+            <a class="layui-btn layui-btn-xs layui-btn-normal" lay-event="Update">修改</a>
+            <a class="layui-btn layui-btn-xs layui-btn-danger" lay-event="Del">删除</a>
+            <a id="ChoiceRole" class="layui-btn layui-btn-xs" lay-event="EditRole">设置角色</a>
+        </script>
+    }
+
+    @* 修改/添加 *@
+    <div id="models" hidden="hidden" style="margin:10px;">
+        <form id="AddUpdate" class="layui-form layui-form-pane">
+            @* 姓名 *@
+            <div class="layui-form-item">
+                <label class="layui-form-label">姓名</label>
+                <div class="layui-input-block">
+                    <input id="Name" type="text" name="title" lay-verify="title" autocomplete="off" placeholder="请输入姓名" class="layui-input">
+                </div>
+            </div>
+
+            <div class="layui-form-item">
+                <label class="layui-form-label">代码</label>
+                <div class="layui-input-block">
+                    <input id="Code" type="text" name="title" lay-verify="title" autocomplete="off" placeholder="请输入代码" class="layui-input">
+                </div>
+            </div>
+
+        </form>
+    </div>
+    <input id="hideStaff" type="text" hidden="hidden"/>
+</body>
+</html>

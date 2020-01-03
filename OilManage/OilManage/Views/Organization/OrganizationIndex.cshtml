@@ -1,0 +1,285 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>OrganizationIndex</title>
+    <link href="~/Content/design/css/layui.css" rel="stylesheet" />
+    <script src="~/Scripts/jquery-3.3.1.min.js"></script>
+    <script src="~/Content/design/layui.js"></script>
+    <style>
+        body{
+            width:100%;
+        }
+    </style>
+
+    <script>
+        var editObj = null, ptable = null, treeGrid = null, tableId = 'treeTable', layer = null;
+        
+        layui.config({
+            base: '/Content/design/extend/'
+        }).extend({
+            treeGrid: 'treeGrid'
+            }).use(['jquery', 'treeGrid', 'layer','laydate'], function () {
+            var $ = layui.jquery;
+            treeGrid = layui.treeGrid;//很重要
+            layer = layui.layer;
+            laydate = layui.laydate;
+            laydate.render({
+                elem: '#CreateTime'
+            });
+            laydate.render({
+                elem: '#UpdateTime'
+            });
+            ptable = treeGrid.render({
+                id: tableId
+                , elem: '#test'
+                , isOpenDefault: false//节点默认是展开还是折叠【默认展开】
+                , idField: 'Id'
+                , url: '/Organization/OrganizationRead'
+                , cellMinWidth: 100
+                , treeId: 'Id'//树形id字段名称
+                , treeUpId: 'Pid'//树形父id字段名称
+                , treeShowName: 'Name'//以树形式显示的字段
+                , cols: [[
+                    { type: 'checkbox', sort: true }
+                    ,{ field: 'Name', edit: 'text', width: 200, title: '组织机构名称' }
+                    , { field: 'Code', title: '代码', width: 200 }
+                    , { field: 'Leve', title: '区域级别', width: 200,
+                        templet: function (d) {
+                            if (d.Leve == 0) {
+                                return '总部';
+                            } else if (d.Leve == 1) {
+                                return '大区';
+                            } else if (d.Leve == 2) {
+                                return '区域';
+                            } else if (d.Leve == 3) {
+                                return '油站';
+                            }
+                        }
+                    }
+                    , { width: 100, title: '操作', align: 'center',width: 200
+                    , templet: function (d) {
+                        var html = '';
+                        var addBtn = '<a class="layui-btn layui-btn-primary layui-btn-xs" lay-event="add">添加</a>';
+                        var delBtn = '<a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除</a>';
+                        var EditBtn = '<a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="edit">修改</a>';
+                        return addBtn + delBtn + EditBtn;
+                    }
+                    }
+                ]]
+                , parseData: function (res) {//数据加载后回调
+                    return res;
+                }
+                , page: false
+            });
+
+            treeGrid.on('tool(' + tableId + ')', function (obj) {
+                console.log(obj);
+                var data = obj.data;
+                if (obj.event === 'del') {//删除行
+                    del(data.Id);
+                }
+                else if (obj.event === "add") {//添加行
+                    add(obj);
+                } else if (obj.event === "edit")
+                {
+                    Update(obj);
+                }
+            });
+        });
+
+        function del(Id) {
+            layer.confirm("你确定删除数据吗？如果存在下级节点则一并删除，此操作不能撤销！", { icon: 3, title: '提示' },
+                $.ajax({
+                    type: "post",
+                    url: "/Organization/OrganizationDel",
+                    dataType: "json",
+                    data: {
+                        id: Id, 
+                    }, success: function (data) {
+                        if (data == true) {
+                            layer.msg("删除成功"), {
+                                zindex: 1000,
+                                offset: '450px',
+                                icon: 1,
+                                time: 9000, //2s后自动关闭
+                            };
+                            reload();
+                            return true;
+                        }
+                        else {
+                                layer.msg("删除失败");
+                                Select();
+                        }
+                    }
+                })
+            );
+        }
+
+        var i = 1000;
+        //添加
+        function add(Obj) {
+            var data = Obj ? Obj.data : null;
+            Pid = data.Id;
+            $("#PName").val(data.Name);
+            layui.use('layer', function () { //独立版的layer无需执行这一句
+                //独立版的layer无需执行这一句
+                //触发事件
+                layer.open({
+                    type: 1
+                    , offset: '20px'
+                    , title: "添加节点" //不显示标题栏
+                    , closeBtn: false
+                    , area: '700px;'
+                    , content: $("#models")
+                    , shade: 0.8
+                    , id: 'Id' //设定一个id，防止重复弹出
+                    , resize: false
+                    , btn: ['添加节点信息', '取消']
+                    , btnAlign: 'c'
+                    , moveType: 1 //拖拽模式，0或者1
+                    , yes: function (index, layero) {
+                        $.ajax({
+                            type: "post",
+                            url: "/Organization/OrganizationAdd",
+                            dataType: "json",
+                            data: {
+                                Pid: Pid,
+                                Code: $("#Code").val(),
+                                Name: $("#Name").val(),
+                                CreateTime: $("#CreateTime").val(),
+                                UpdateTime: $("#UpdateTime").val()
+                            }, success: function (data) {
+                                if (data == true) {
+                                    layer.msg("添加成功"), {
+                                        zindex: 1000,
+                                        offset: '450px',
+                                        icon: 1,
+                                        time: 3000, //2s后自动关闭
+                                    };
+
+                                    reload();
+                                    return true;
+                                }
+                                else {
+                                        layer.msg("添加失败");
+                                        Select();
+                                }
+                            }
+                        })
+                    }
+                })
+            })
+        }
+
+        //修改
+        function Update(obj) {
+            var data = obj ? obj.data : null;
+            $("#Id").val(data.Id);
+            $("#Code").val(data.Code);
+            $("#Name").val(data.Name);
+            $("#CreateTime").val(data.CreateTime);
+            $("#UpdateTime").val(data.UpdateTime);
+            layui.use('layer', function () { //独立版的layer无需执行这一句
+                //独立版的layer无需执行这一句
+                //触发事件
+                layer.open({
+                    type: 1
+                    , offset: '20px'
+                    , title: "添加节点" //不显示标题栏
+                    , closeBtn: false
+                    , area: '700px;'
+                    , content: $("#models")
+                    , shade: 0.8
+                    , id: 'Id' //设定一个id，防止重复弹出
+                    , resize: false
+                    , btn: ['添加节点信息', '取消']
+                    , btnAlign: 'c'
+                    , moveType: 1 //拖拽模式，0或者1
+                    , yes: function (index, layero) {
+                        $.ajax({
+                            type: "post",
+                            url: "/Organization/OrganizationAdd",
+                            dataType: "json",
+                            data: {
+                                Pid: Pid,
+                                Code: $("#Code").val(),
+                                Name: $("#Name").val(),
+                            }, success: function (data) {
+                                if (data == true) {
+                                    layer.msg("修改成功");
+                                    reload();
+                                    return true;
+                                }
+                                else {
+                                    layer.msg("修改失败");
+                                    Select();
+                                }
+                            }
+                        })
+                    }
+                })
+            })
+        }
+        //重新渲染
+        function reload() {
+        treeGrid.reload(tableId, {
+            page: {
+                curr: 1
+            }
+        });
+    }
+
+    </script>
+</head>
+<body> 
+    <div class="layui-layer-title layui-bg-blue" style="padding-left: 5px;">
+        <label>基础信息 </label>
+        <i class="layui-icon"></i>
+        <label>组织机构管理</label>
+    </div>
+    
+    <div style="height: 100%">
+        <table id="test" lay-filter="treeTable"></table>
+    </div>
+
+    @* 添加/修改框 *@
+    <div id="models" hidden="hidden" style="margin:10px;">
+        <form id="AddUpdate" class="layui-form layui-form-pane">
+            <div class="layui-form-item">
+                <div class="layui-inline">
+                    <label class="layui-form-label">组织机构名称</label>
+                    <div class="layui-input-inline">
+                        <input id="PName" type="text" name="title" lay-verify="title" autocomplete="off" placeholder="请输入职位名称" class="layui-input">
+                    </div>
+                </div>
+
+
+            </div>
+
+            <div class="layui-form-item">
+                <div class="layui-inline">
+                    <label class="layui-form-label">职位代码</label>
+                    <div class="layui-input-inline">
+                        <input id="Code" type="text" name="title" lay-verify="title" autocomplete="off" placeholder="请输入职位名称" class="layui-input">
+                    </div>
+                </div>
+
+                <div class="layui-inline">
+                    <label class="layui-form-label">区域名字</label>
+                    <div class="layui-input-inline">
+                        <input id="Name" type="text" name="title" lay-verify="title" autocomplete="off" placeholder="请输入职位名称" class="layui-input">
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+</body>
+</html>

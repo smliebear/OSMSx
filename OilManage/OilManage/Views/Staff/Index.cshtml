@@ -1,0 +1,526 @@
+﻿@{
+    Layout = null;
+}
+@using OilManage.Models
+@model OilManage.ViewModel.StaffViewModel
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Index</title>
+    <link href="~/Content/layuiadmin/layui/css/layui.css" rel="stylesheet" />
+    <script src="~/Scripts/jquery-3.3.1.js"></script>
+    <script src="~/Content/layuiadmin/layui/layui.js"></script>
+
+    <script>
+        select();
+        var tables;
+        //查询表格
+        function select() {
+            layui.use(['table', 'laydate', 'form'], function () {
+                var table = layui.table, laydate = layui.laydate;
+                //时间表格
+                laydate.render({
+                    elem: '#BirthDay'
+                });
+                laydate.render({
+                    elem: '#CreateTime'
+                });
+                laydate.render({
+                    elem: '#UpdateTime'
+                });
+
+                //加载表格
+                tables = table.render({
+                    elem: '#test'
+                    , toolbar: '#toolbarDemo' //开启头部工具栏，并为其绑定左侧模板
+                    , url: 'getdata'
+                    , title: '用户数据表'
+                    , cellMinWidth: 80 //全局定义常规单元格的最小宽度，layui 2.2.1 新增
+                    , even: true
+                    , cols: [[
+                        { field: 'Id', width: 180, title: 'ID', sort: true, hide: true }
+                        , { field: 'Name', width: 80, title: '用户名', fixed: 'left' }
+                        , { field: 'No', width: 120, title: '编号', sort: true }
+                        , {
+                            field: 'Sex', width: 60, title: '性别'
+                            , templet: function (d) {
+                                if (d.Sex != false)
+                                    return '男';
+                                else {
+                                    return '女';
+                                }
+                            }
+                        }
+                        , {
+                            field: 'BirthDay', width: 100, title: '年龄',
+                            templet: function (d) {
+                                return dateToStr(d.BirthDay);
+                            }
+                        }
+                        , { field: 'Address', title: '家庭地址', minWidth: '60px', width: '13%' } //minWidth：局部定义当前单元格的最小宽度，layui 2.2.1 新增
+                        , { field: 'Email', title: '邮箱', width: 100, sort: true }
+                        , { field: 'Tel', title: '电话', width: 150, sort: true }
+                        , {
+                            field: 'CreateTime', width: 137, title: '入职时间'
+                            , templet: function (d) {
+                                return new Date(parseInt(d.CreateTime.substr(6, 13))).toLocaleDateString();
+                            }
+                        }
+                        , {
+                            field: 'UpdateTime', width: 137, title: '修改时间', sort: true,
+                            templet: function (d) {
+                                return new Date(parseInt(d.UpdateTime.substr(6, 13))).toLocaleDateString();
+                            }
+
+                        }
+                        , { field: 'Password', width: 137, title: '密码', sort: true, hide: true }
+                        , { field: 'j_Id', width: 137, title: '职位ID', sort: true, hide: true }
+                        , { field: 'j_Name', width: 137, title: '职位', sort: true }
+                        , { field: 'os_ID', width: 137, title: '工作地点ID', sort: true, hide: true }
+                        , { field: 'o_Name', width: 137, title: '工作地点', sort: true }
+                        , { fixed: 'right', title: '操作', toolbar: '#barDemo', width: 150 }
+                    ]],
+                    page: {
+                        layout: ['limit', 'count', 'prev', 'page', 'next', 'skip'] //自定义分页布局
+                        //,curr: 5 //设定初始在第 5 页
+                        , groups: 1 //只显示 1 个连续页码
+                        , first: false //不显示首页
+                        , last: false //不显示尾页
+                    }
+                });
+                $("#btnJob").on("click", function () {
+                    layer.open({
+                        type: 2,
+                        content: "/Job/JobIndex?Choice=true",
+                        area: ["850px", "500px"],
+                        title: "选择职位",
+                        end: function (Job) {
+                        }
+                    });
+                    return false;
+                })
+               
+            });
+
+            //编辑弹框
+            layui.use('table', function () {
+                var table = layui.table;
+                //监听行工具事件
+                table.on('tool(test)', function (obj) {
+                    var data = obj.data;
+                    if (obj.event === 'del') {
+                        layer.confirm('真的删除行么', function (index) {
+                            Delete(data.Id);
+                            layer.close(index);
+                        });
+                    } else if (obj.event === 'edit') {
+                        Update(data.Id, data.Name, data.Sex, data.BirthDay, data.NativePlace, data.Address, data.Password, data.Email, data.Tel, data.CreateTime, data.UpdateTime, data.j_Id, data.os_ID);
+                    } else if (obj.event === 'Choice') {
+                        //作为选择成为接收人
+                        parent.$('#HidePeson').val(data.Id);
+                        parent.$('#HandoverSatffName').val(data.Name);
+                        var index = parent.layer.getFrameIndex(window.name);
+                        parent.layer.close(index);
+                    }
+                });
+
+            })
+   
+        }
+
+        //模糊查询
+        function likeselect() {
+            var input = document.getElementById("LikeName");
+            var LikeName = input.value;
+            // var table = layui.table;
+            tables.reload({
+                where: {
+                    LikeName: LikeName,
+                }
+            })
+
+        }
+
+        //添加方法
+        function Staffframe() {
+            layui.use('layer', function () { //独立版的layer无需执行这一句
+                var $ = layui.jquery, layer = layui.layer//独立版的layer无需执行这一句
+                //layer.msg('hello');
+                //触发事件
+                empty();
+                layer.open({
+                    type: 1
+                    , offset: '20px'
+                    , title: "添加员工基本信息" //不显示标题栏
+                    , content: $("#models")
+                    , closeBtn: false
+                    , area: '700px;'
+                    , shade: 0.8
+                    , id: 'Id' //设定一个id，防止重复弹出
+                    , resize: false
+                    , btn: ['添加员工信息', '取消', '重置']
+                    , btnAlign: 'c'
+                    , moveType: 1 //拖拽模式，0或者1
+                    , btn1: function (index, layero) {
+                        $.ajax({
+                            type: "post",
+                            url: "/Staff/AddStaff",
+                            dataType: "json",
+                            zIndex: 500,
+                            data: {
+                                Name: $("#Name").val(),
+                                Sex: $('#sexs input[name = "sex"]: checked ').val(),
+                                BirthDay: $("#BirthDay").val(),
+                                NativePlace: $("#NativePlace").val(),
+                                Address: $("#Address").val(),
+                                Password: $("#Password").val(),
+                                Email: $("#Email").val(),
+                                Tel: $("#Tel").val(),
+                                CreateTime: $("#CreateTime").val(),
+                                UpdateTime: $("#UpdateTime").val(),
+                                JobId: $("#HideJob").val(),
+                                OrgID: $("#OrID").val()
+                            }, success: function (data) {
+                                if (data == true) {
+                                    layer.msg("添加成功"), {
+                                        zindex: 1000,
+                                        offset: '450px',
+                                        icon: 1,
+                                        time: 5000, //2s后自动关闭
+                                    };
+                                    layer.closeAll();
+                                    select();
+                                }
+                                else {
+                                    layer.closeAll();
+                                    if (data == true) {
+                                        layer.msg("添加成功"), {
+                                            zindex: 1000,
+                                            offset: '450px',
+                                            icon: 1
+                                        };
+                                        layer.closeAll();
+                                        select();
+                                    }
+                                }
+                            }
+                        })
+                    }
+                    , btn3: function (index, layero) {
+                        //重置，清空
+                        empty();
+                        return false; //开启该代码可禁止点击该按钮关闭
+                    }
+                });
+            })
+        }
+
+        //修改方法
+        function Update(Id, Name, Sex, BirthDay, NativePlace, Address, Password, Email, Tel, CreateTime, UpdateTime, j_Id, os_ID) {
+            var $ = layui.jquery, layer = layui.layer;
+            $("#Name").val(Name);
+            if (Sex == "1") {
+                $("#Man").prop('checked', true);
+            } else {
+                $("#WoMan").prop('checked', true)
+            }
+            $("#BirthDay").val(BirthDay);
+            $("#NativePlace").val(NativePlace);
+            $("#Address").val(Address);
+            $("#Password").val(Password);
+            $("#Email").val(Email);
+            $("#Tel").val(Tel);
+            $("#CreateTime").val(CreateTime);
+            $("#UpdateTime").val(UpdateTime);
+            $("#JobId").val(j_Id);
+            $("#OrID").val(os_ID);
+
+            layui.use('form', function () {
+                var form = layui.form; //只有执行了这一步，部分表单元素才会自动修饰成功
+                form.render();
+            });
+            //触发事件
+            layui.use('layer', function () { //独立版的layer无需执行这一句
+                var $ = layui.jquery, layer = layui.layer//独立版的layer无需执行这一句
+                //layer.msg('hello');
+                //触发事件
+                layer.open({
+                    type: 1
+                    , offset: '20px'
+                    , title: "修改员工基本信息" //不显示标题栏
+                    , closeBtn: false
+                    , area: '700px;'
+                    , content: $("#models")
+                    , shade: 0.8
+                    , id: 'Id' //设定一个id，防止重复弹出
+                    , resize: false
+                    , btn: ['修改员工信息', '取消', '重置']
+                    , btnAlign: 'c'
+                    , moveType: 1 //拖拽模式，0或者1
+                    , btn1: function (index, layero) {
+                        $.ajax({
+                            type: "post",
+                            url: "/Staff/UpdateStaff",
+                            dataType: "json",
+                            data: {
+                                Id: Id,
+                                Name: $("#Name").val(),
+                                Sex: $('input[name="sex"]').val(),
+                                BirthDay: $("#BirthDay").val(),
+                                NativePlace: $("#NativePlace").val(),
+                                Address: $("#Address").val(),
+                                Password: $("#Password").val(),
+                                Email: $("#Email").val(),
+                                Tel: $("#Tel").val(),
+                                CreateTime: $("#CreateTime").val(),
+                                UpdateTime: $("#UpdateTime").val(),
+                                JobId: $("#HideJob").val(),
+                                OrgID: $("#OrID").val()
+                            }, success: function (data) {
+                                if (data == true) {
+                                    layer.msg("修改成功"), {
+                                        zindex: 1200,
+                                        offset: '450px',
+                                        icon: 1,
+                                        time: 5000
+                                    };
+                                    layer.closeAll();
+                                    select();
+                                }
+                                else {
+                                    layer.msg("修改失败，密码错误");
+                                    layer.closeAll();
+                                }
+                            }
+                        })
+                    }
+                    , btn3: function (index, layero) {
+                        //重置，清空
+                        empty();
+                        return false; //开启该代码可禁止点击该按钮关闭
+                    }
+                });
+            })
+
+        }
+
+        //删除方法
+        function Delete(id) {
+            layui.use(['table'], function () {
+                var table = layui.table;
+                $.ajax({
+                    url: "/Staff/DelStaff",
+                    type: "POST",
+                    dataType: "json",
+                    data: {
+                        id: id,
+                    },
+                    success: function (json) {
+                        if (json != null) {
+                            layer.msg("删除成功");
+                            select();
+                        } else {
+                            layer.msg("删除失败");
+                        }
+                    },
+                    error: function (res) {
+                        alert(res);
+                    }
+                });
+            })
+        }
+
+        //清空
+        function empty() {
+            $("#Name").val("");
+            $('input[name="sex"]').val("");
+            $("#BirthDay").val("");
+            $("#NativePlace").val("");
+            $("#Address").val("");
+            $("#Password").val("");
+            $("#Email").val("");
+            $("#Tel").val("");
+            $("#CreateTime").val("");
+            $("#UpdateTime").val("");
+            $("#Job").val(""),
+                $("#OrID").val("")
+        }
+
+        //出生日期转换成年龄
+        function dateToStr(str) {
+            var state = new Date(parseInt(str.substr(6.13))).getFullYear(); //获取出生日期
+            var now = new Date().getFullYear();
+
+            var time = new Date(parseInt(str.substr(6.13))).getTime();
+            var nowtime = new Date().getTime();
+            return (now - state);
+        }
+
+    </script>
+</head>
+<body>
+    <div class="layui-layer-title layui-bg-blue" style="padding-left: 5px;">
+        <label>基础信息维护 </label>
+        <i class="layui-icon"></i>
+        <label>员工基础信息管理</label>
+    </div>
+    @* 题头 *@
+    <div class=" layui-form-item">
+        <div class="layui-inline" pane>
+            <label class="layui-form-label">姓名:</label>
+            <div class="layui-input-inline">
+                <input id="LikeName" type="text" name="Name" lay-verify="title" autocomplete="off" class="layui-input" placeholder="请输入姓名" value="">
+            </div>
+            <button type="button" class="layui-btn layui-icon layui-bg-blue" data-method="notice"><i onclick="likeselect()">&#xe615;查询</i></button>
+        </div>
+    </div>
+
+    <script type="text/html" id="toolbarDemo">
+        <div class="layui-btn-container">
+            <button type="button" class="layui-btn layui-btn-sm layui-btn layui-btn-normal" data-method="notice"><i class="layui-icon" onclick="Staffframe()"></i></button>
+            <button type="button" class="layui-btn layui-btn-sm layui-btn layui-btn-normal"><i class="layui-icon"></i></button>
+            <button type="button" class="layui-btn layui-btn-sm layui-btn layui-btn-normal"><i class="layui-icon"></i></button>
+            <button type="button" class="layui-btn layui-btn-sm layui-btn layui-btn-normal"><i class="layui-icon"></i></button>
+
+        </div>
+    </script>
+    <table class="layui-hide" id="test"></table>
+
+    @*添加/修改信息，在页面隐藏*@
+    <div id="models" hidden="hidden" style="margin:10px;">
+        <form id="AddUpdate" class="layui-form layui-form-pane">
+            @* 姓名 *@
+            <div class="layui-form-item">
+                <label class="layui-form-label">姓名</label>
+                <div class="layui-input-block">
+                    <input id="Name" type="text" name="title" lay-verify="title" autocomplete="off" placeholder="请输入姓名" class="layui-input">
+                </div>
+            </div>
+
+            @* 性别/生日 *@
+            <div class="layui-form-item">
+                <div class="layui-inline" pane>
+                    <label class="layui-form-label">性别</label>
+                    <div class="layui-input-inline" id="sexs">
+                        <input type="radio" id="Man" lay-filter="sex" name="sex" value="1" title="男" checked="">
+                        <input type="radio" id="WoMan" lay-filter="sex" name="sex" value="0" title="女">
+                        @*<input type="radio" name="sex" value="" title="禁用" disabled="">*@
+                    </div>
+                </div>
+
+                <div class="layui-inline">
+                    <label class="layui-form-label">生日</label>
+                    <div class="layui-input-inline">
+                        <input id="BirthDay" type="text" name="date" lay-verify="date" placeholder="yyyy-MM-dd" autocomplete="off" class="layui-input">
+                    </div>
+                </div>
+            </div>
+
+            @* 生活地址 *@
+            <div class="layui-form-item">
+                <label class="layui-form-label">生活地址</label>
+                <div class="layui-input-block">
+                    <input id="NativePlace" type="text" name="username" lay-verify="required" lay-reqtext="地址是必填项，岂能为空？" placeholder="请输入生活地址" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+
+            @* 家庭地址 *@
+            <div class="layui-form-item">
+                <label class="layui-form-label">家庭地址</label>
+                <div class="layui-input-block">
+                    <input id="Address" type="text" name="username" lay-verify="required" lay-reqtext="地址是必填项，岂能为空？" placeholder="请输入家庭地址" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+
+            @* 密码/验证邮箱 *@
+            <div class="layui-form-item">
+                <div class="layui-inline">
+                    <label class="layui-form-label">密码</label>
+                    <div class="layui-input-inline">
+                        <input id="Password" type="text" name="username" lay-verify="required" lay-reqtext="密码是必填项，岂能为空？" placeholder="请输入密码" autocomplete="off" class="layui-input">
+                    </div>
+                </div>
+
+                <div class="layui-inline">
+                    <label class="layui-form-label">验证邮箱</label>
+                    <div class="layui-input-inline">
+                        <input id="Email" type="text" name="username" lay-verify="required" lay-reqtext="邮箱是必填项，岂能为空？" placeholder="请输入邮箱" autocomplete="off" class="layui-input">
+                    </div>
+                </div>
+            </div>
+
+            @* 联系电话 *@
+            <div class="layui-form-item">
+                <label class="layui-form-label">联系电话</label>
+                <div class="layui-input-block">
+                    <input id="Tel" type="text" name="username" lay-verify="required" lay-reqtext="电话是必填项，岂能为空？" placeholder="请输入电话" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+
+            @* 入职时间/修改时间 *@
+            <div class="layui-form-item">
+                <div class="layui-inline">
+                    <label class="layui-form-label">入职时间</label>
+                    <div class="layui-input-inline">
+                        <input id="CreateTime" type="text" name="date" lay-verify="date" placeholder="yyyy-MM-dd" autocomplete="off" class="layui-input">
+                    </div>
+                </div>
+
+
+                <div class="layui-inline">
+                    <label class="layui-form-label">修改时间</label>
+                    <div class="layui-input-inline">
+                        <input id="UpdateTime" type="text" name="date" lay-verify="date" placeholder="yyyy-MM-dd" autocomplete="off" class="layui-input">
+                    </div>
+                </div>
+            </div>
+
+            @* 员工职位/工作地点 *@
+            <div class="layui-form-item">
+                <div class="layui-inline">
+                    <label class="layui-form-label">员工职位</label>
+                    <div class="layui-input-inline">
+                        <input id="Job" value="Jobid" type="text" name="username" lay-verify="required" class="layui-input" />
+                    </div>
+                    <button id="btnJob" class="layui-btn layui-btn-normal">请选择职位</button>
+                </div>
+                @*<button type="button" class="layui-btn layui-btn-normal" onclick="ChoiceJob()">选择职位</button>*@
+
+                <div class="layui-inline">
+                    <label class="layui-form-label">工作地点</label>
+                    <div class="layui-input-inline">
+                        <select id="OrID">
+                            <option value="0" class="layui-select">=========请选择========</option>
+                            @foreach (OrganizationStructure o in Model.organizationStructures)
+                            {
+                                <option value="@o.Id " class="layui-select">@o.Name</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+
+        </form>
+    </div>
+    @*右侧图标，在页面隐藏*@
+    <script type="text/html" id="barDemo"  lay-filter="test">
+        <div class="layui-btn-group">
+            @if (ViewBag.Choice == "yes")
+            {
+                <button type="button" class="layui-btn layui-btn-sm" lay-event="edit"><i class="layui-icon">编辑</i></button>
+                <button type="button" class="layui-btn layui-btn-sm" lay-event="edit"><i class="layui-icon">删除</i></button>
+            }
+            else
+            {
+                <button type="button" class="layui-btn layui-btn-sm" lay-event="Choice" title="选择"><i class="layui-icon">选择</i></button>
+            }
+        </div>
+    </script>
+    <input id="Hide" hidden="hidden" />
+    <input id="HideJob" hidden="hidden" />
+
+</body>
+</html>

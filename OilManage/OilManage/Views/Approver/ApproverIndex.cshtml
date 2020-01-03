@@ -1,0 +1,423 @@
+﻿
+@model IQueryable<OilManage.Models.ProcessItem>
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Approver</title>
+    <link href="~/Content/layuiadmin/layui/css/layui.css" rel="stylesheet" />
+    <script src="~/Scripts/jquery-3.3.1.min.js"></script>
+    <script src="~/Content/layuiadmin/layui/layui.js"></script>
+    <script>
+        Select();
+        var tables;
+        //查询
+        function Select() {
+            layui.use(['table', 'laydate', 'form'], function () {
+                var table = layui.table, form = layui.form, laydate = layui.laydate; //只有执行了这一步，部分表单元素才会自动修饰成功
+                //加载表格
+                tables = table.render({
+                    elem: '#toolbarDemo'
+                    , toolbar: '#toolbarDemo' //开启头部工具栏，并为其绑定左侧模板
+                    , url: '/Approver/ApproverRead'
+                    , title: '流程设置表'
+                    , initSort: {
+                        field: 'Order' //排序字段，对应 cols 设定的各字段名
+                        , type: 'asc' //排序方式  asc: 升序、desc: 降序、null: 默认排序
+                    }
+                    , id: 'Id'
+                    , cellMinWidth: 80 //全局定义常规单元格的最小宽度，layui 2.2.1 新增
+                    , width: 1000
+                    , even: true
+                    , cols: [[
+                        { field: 'Id', title: 'ID', sort: true, hide: true }
+                        , { field: 'JobCode', width: '15%', title: '职位代码' }
+                        , {
+                            field: 'AreaLeve', width: '15%', title: '区域级别', templet: function (d) {
+                                if (d.AreaLeve == 0) {
+                                    return '总部';
+                                } else if (d.AreaLeve == 1) {
+                                    return '大区';
+                                } else if (d.AreaLeve == 2) {
+                                    return '区域';
+                                } else if (d.AreaLeve == 3) {
+                                    return '油站';
+                                }
+                            }
+                        }
+                        , { field: 'Discrible', width: '15%', title: '操作对象描述	' }
+                        , {
+                            field: 'Order', width: '15%', title: '发起或审批顺序', sort: true
+
+                        }
+                        , { field: 'pDiscrible', width: '15%', title: '审批所在表', hide: true }
+                        , { field: 'ExecuteMethod', width: '15%', title: '审批所在表', hide: true }
+
+                        , { fixed: 'right', title: '操作', toolbar: '#barDemo', width: '30%' }
+                    ]],
+                    page: {
+                        layout: ['limit', 'count', 'prev', 'page', 'next', 'skip'] //自定义分页布局
+                        //,curr: 5 //设定初始在第 5 页
+                        , groups: 1 //只显示 1 个连续页码
+                        , first: false //不显示首页
+                        , last: false //不显示尾页
+                    }
+                });
+                         //编辑弹框
+                table.on('toolbar(test)', function (obj) {
+                    var checkStatus = table.checkStatus(obj.config.id);
+                    switch (obj.event) {
+                        case 'getCheckData':
+                            var data = checkStatus.data;
+                            layer.alert(JSON.stringify(data));
+                            break;
+                        case 'getCheckLength':
+                            var data = checkStatus.data;
+                            layer.msg('选中了：' + data.length + ' 个');
+                            break;
+                        case 'isAll':
+                            layer.msg(checkStatus.isAll ? '全选' : '未全选');
+                            break;
+
+                        //自定义头工具栏右侧图标 - 提示
+                        case 'LAYTABLE_TIPS':
+                            layer.alert('这是工具栏右侧自定义的一个图标按钮');
+                            break;
+                    };
+                });
+
+
+                //监听行工具事件
+                table.on('tool(test)', function (obj) {
+                    var data = obj.data;
+                    if (obj.event === 'del') {
+                        layer.confirm('真的删除行么', function (index) {
+                            ApproverDel(data.Id);
+                            layer.close(index);
+                        });
+                    } else if (obj.event === 'edit') {
+                        ApproverUpdate(data.Id, data.JobCode, data.AreaLeve, data.Discrible, data.ExecuteMethod);
+                    } else if (obj.event === 'upward') {
+                        MoveUp(data.Id, data.Order);
+                    } else if (obj.event === 'down') {
+                        Move(data.Id, data.Order);
+                    }
+                });
+            });    
+        }
+
+        //模糊查询
+        function LikeSelect() {
+            var input = document.getElementById("ProcessItemId");
+            var ProcessItemId = input.value;
+            var input = document.getElementById("JobCode");
+            var JobCode = input.value;
+            var input = document.getElementById("AreaLeve");
+            var AreaLeve = input.value;
+            // var table = layui.table;
+            tables.reload({
+                where: {
+                    ProcessItemId: ProcessItemId,
+                    JobCode: JobCode,
+                    AreaLeve: AreaLeve
+                }
+            })    
+        }
+
+        //删除
+        function ApproverDel(id) {
+            layui.use(['table'], function () {
+                var table = layui.table;
+                $.ajax({
+                    url: "/Approver/ApproverDel",
+                    type: "POST",
+                    dataType: "json",
+                    data:
+                    {
+                        Id: id,
+                    },
+                    success: function (json) {
+                        if (json != null) {
+                            layer.msg("删除成功");
+                            Select();
+                        }
+                        else {
+                            layer.msg("删除失败");
+                        }
+                    },
+                });
+            })
+        }
+
+        //添加
+        function ApproverAdd() {
+            layui.use('layer', function () { //独立版的layer无需执行这一句
+                var $ = layui.jquery, layer = layui.layer;//独立版的layer无需执行这一句
+
+                //触发事件
+                layer.open({
+                    type: 1
+                    , offset: '20px'
+                    , title: "添加流程" //不显示标题栏
+                    , closeBtn: false
+                    , area: '700px;'
+                    , content: $("#models")
+                    , shade: 0.8
+                    , id: 'Id' //设定一个id，防止重复弹出
+                    , resize: false
+                    , btn: ['添加流程信息', '取消', '重置']
+                    , btnAlign: 'c'
+                    , moveType: 1 //拖拽模式，0或者1
+                    , yes: function (index, layero) {
+                        $.ajax({
+                            type: "post",
+                            url: "/Approver/ApproverAdd",
+                            dataType: "json",
+                            zIndex: 500,
+                            data: {
+                                JobCode: $("#JobCode").val(),
+                                AreaLeve: $("#AreaLeve").val(),
+                                Discrible: $("#Discrible").val(),
+                                ExecuteMethod: $("#ExecuteMethod").val(),
+                            }, success: function (data) {
+                                if (data == true) {
+                                    layer.msg("添加成功"), {
+                                        zindex: 1000,
+                                        offset: '450px',
+                                        icon: 1,
+                                        time: 9000, //2s后自动关闭
+                                    };
+                                    Select();
+                                }
+                                else {
+                                    if (data == true) {
+                                        layer.msg("添加失败");
+                                        Select();
+                                    }
+                                }
+                            }
+                        })
+                        layer.close(layer.index);
+                    }
+                    , btn3: function (index) {
+                        //重置，清空
+                        return false; //开启该代码可禁止点击该按钮关闭
+                    }
+                });
+            })
+        }
+
+        //修改
+        function ApproverUpdate(Id, JobCode, AreaLeve, Discrible, ExecuteMethod) {
+            var $ = layui.jquery, layer = layui.layer;
+            $("#JobCode").val(JobCode);
+            if (AreaLeve == "总部") {
+                $("#AreaLeve").val(0);
+            }
+            else if (AreaLeve == "大区") {
+                $("#AreaLeve").val(1);
+            }
+            else if (AreaLeve == "区域") {
+                $("#AreaLeve").val(2);
+            }
+            else if (AreaLeve == "油站") {
+                $("#AreaLeve").val(3);
+            }
+            $("#Discrible").val(Discrible);
+            $("#ExecuteMethod").val(ExecuteMethod);
+
+            layui.use('form', function () {
+                var form = layui.form; //只有执行了这一步，部分表单元素才会自动修饰成功
+                form.render();
+            });
+            //触发事件
+            layui.use('layer', function () { //独立版的layer无需执行这一句
+                var $ = layui.jquery, layer = layui.layer//独立版的layer无需执行这一句
+                //layer.msg('hello');
+                //触发事件
+                layer.open({
+                    type: 1
+                    , offset: '20px'
+                    , title: "修改流程设置" //不显示标题栏
+                    , closeBtn: false
+                    , area: '700px;'
+                    , content: $("#models")
+                    , shade: 0.8
+                    , id: 'Id' //设定一个id，防止重复弹出
+                    , resize: false
+                    , btn: ['修改流程设置', '取消', '重置']
+                    , btnAlign: 'c'
+                    , moveType: 1 //拖拽模式，0或者1
+                    , btn1: function (index, layero) {
+                        $.ajax({
+                            type: "post",
+                            url: "/Approver/ApproverUpdate",
+                            dataType: "json",
+                            data: {
+                                Id: Id,
+                                JobCode: $("#JobCode").val(),
+                                AreaLeve: $("#AreaLeve").val(),
+                                Discrible: $("#Discrible").val(),
+                                ExecuteMethod: $("#ExecuteMethod").val(),
+                            }, success: function (data) {
+                                if (data == true) {
+                                    layer.msg("修改成功"), {
+                                        zindex: 1200,
+                                        offset: '450px',
+                                        icon: 1,
+                                        time: 5000
+                                    };
+                                    layer.closeAll();
+                                    Select();
+                                }
+                                else {
+                                    layer.msg("修改失败，密码错误");
+                                    layer.closeAll();
+                                }
+                            }
+                        })
+                    }
+                    , btn3: function (index, layero) {
+                        //重置，清空
+                        empty();
+                        return false; //开启该代码可禁止点击该按钮关闭
+                    }
+                });
+            })
+        }
+
+        //上移
+        function MoveUp(Id, Order) {
+            //判断上移还是下移
+            Order = Order - 1;``
+            $.ajax({
+                type: "post",
+                url: "/Approver/ApproverMove",
+                dataType: "json",
+                data: {
+                    Id: Id,
+                    Orders: Order,
+                    ProcessItemId: $("#ProcessItemId").val()
+                }, success(data) {
+                    if (data != 0) {
+                        layer.msg("上移成功");
+                        Select();
+                    }
+                }
+                
+            })
+        }
+    </script>
+</head>
+<body>
+    <div class="layui-layer-title layui-bg-blue" style="padding-left: 5px;">
+        <label>系统设置 </label>
+        <i class="layui-icon"></i>
+        <label>流程设置</label>
+    </div>
+    @* 模糊查询 *@
+    <div class=" layui-form-item">
+        <label class="layui-form-label">流程类型:</label>
+        <div class="layui-input-inline">
+            <select id="ProcessItemId" class="layui-select">
+                @foreach (var app in Model)
+                {
+                    <option value="@app.Id " class="layui-select">@app.Discrible</option>
+                }
+            </select>
+        </div>
+
+        <label class="layui-form-label">职位代码:</label>
+        <div class="layui-input-inline">
+            <input id="JobCode" type="text" name="JobCode" lay-verify="title" autocomplete="off" class="layui-input" value="">
+        </div>
+
+        <label class="layui-form-label">区域级别:</label>
+        <div class="layui-input-inline">
+            <select id="AreaLeve" class="layui-select">
+                <option value="4" class="layui-select">所有</option>
+                <option value="0 " class="layui-select">总部</option>
+                <option value="1 " class="layui-select">大区</option>
+                <option value="2 " class="layui-select">区域</option>
+                <option value="3 " class="layui-select">油站</option>
+            </select>
+        </div>
+
+        <button type="button" class="layui-btn layui-icon layui-bg-blue" data-method="notice"><i onclick="LikeSelect()">&#xe615;查询</i></button>
+    </div>
+
+    @*数据表格*@
+    <div>
+        <table class="layui-hide" id="test" lay-filter="test"></table>
+    </div>
+
+    @* 头部框 *@
+    <script type="text/html" id="toolbarDemo" lay-filter="test">
+        <div class="layui-btn-container">
+            <button type="button" class="layui-btn layui-btn-sm layui-btn layui-btn-normal" data-method="notice"><i class="layui-icon" onclick="ApproverAdd()"></i></button>
+            <button type="button" class="layui-btn layui-btn-sm layui-btn layui-btn-normal"><i class="layui-icon"></i></button>
+        </div>
+    </script>
+
+    @* 右侧框 *@
+    <script type="text/html" id="barDemo">
+        <a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a>
+        <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除</a>
+        <a id="upward" class="layui-btn layui-btn-xs layui-icon" lay-event="upward">&#xe619;上移</a>
+        <a id="down" class="layui-btn layui-btn-xs layui-icon" lay-event="down">&#xe61a;下移</a>
+    </script>
+
+    @* 添加/修改框 *@
+    <div id="models" hidden="hidden" style="margin:10px;">
+        <form id="AddUpdate" class="layui-form layui-form-pane">
+            <div class="layui-form-item">
+                <div class="layui-inline">
+                    <label class="layui-form-label">职位代码</label>
+                    <div class="layui-input-inline">
+                        <input id="JobCode" type="text" name="title" lay-verify="title" autocomplete="off" placeholder="请输入职位名称" class="layui-input">
+                    </div>
+                </div>
+
+
+                <div class="layui-inline">
+                    <label class="layui-form-label">区域级别</label>
+                    <div class="layui-input-inline">
+                        <select id="AreaLeve">
+                            <option value="" class="layui-select">=========请选择=========</option>
+                            <option value="0 " class="layui-select">总部</option>
+                            <option value="1 " class="layui-select">大区</option>
+                            <option value="2 " class="layui-select">区域</option>
+                            <option value="3 " class="layui-select">油站</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="layui-form-item">
+                <div class="layui-inline">
+                    <label class="layui-form-label">操作描述对象</label>
+                    <div class="layui-input-inline">
+                        <input id="Discrible" type="text" name="title" lay-verify="title" autocomplete="off" placeholder="请输入职位代码" class="layui-input">
+                    </div>
+                </div>
+
+
+                <div class="layui-inline">
+                    <label class="layui-form-label">执行方法Code</label>
+                    <div class="layui-input-inline">
+                        <input id="ExecuteMethod" type="text" name="title" lay-verify="title" autocomplete="off" placeholder="请输入职位代码" class="layui-input">
+                    </div>
+                </div>
+            </div>
+
+
+        </form>
+    </div>
+</body>
+</html>

@@ -1,0 +1,224 @@
+﻿@*@model IQueryable<OilManage.Models.SystemResourceModule>*@
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Index</title>
+    <link href="~/Content/layuiadmin/layui/css/layui.css" rel="stylesheet" />
+    <script src="~/Scripts/jquery-3.3.1.min.js"></script>
+    <script src="~/Content/layuiadmin/layui/layui.js"></script>
+
+    <style>
+        body {
+            overflow-x: hidden;
+            overflow-y: hidden;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+    <script>
+        //JavaScript代码区域
+        layui.use('element', function () {
+            var element = layui.element;
+
+        });
+
+        //跳转员工基本信息页面
+        function GetStaff() {
+            //清空frim中的内容
+            $("#firmID").prop("src", "");
+            //将内容赋给frim中
+            $("#firmID").prop("src", "/Staff/Index");
+        }
+
+        //修改密码
+        function Updateinfo() {
+            layui.use('layer', function () { //独立版的layer无需执行这一句
+                var $ = layui.jquery, layer = layui.layer, table = layui.table; //独立版的layer无需执行这一句
+                layer.open({
+                    type: 1
+                    , title: "修改密码" //不显示标题栏
+                    , zindex: 100
+                    , closeBtn: false
+                    , anim: 1
+                    , area: '700px;'
+                    , shade: 0.5             //显示遮罩
+                    , id: 'Id' //设定一个id，防止重复弹出
+                    , zIndex: layer.zIndex //重点1
+                    , resize: false
+                    , btn: ['确定修改', '取消']
+                    , btnAlign: 'c'
+                    , moveType: 1 //拖拽模式，0或者1
+                    , btn1: function (index, layero) {
+                        console.log(layero, index);
+                        var table = layui.table;
+                        var HideId = $("#HideId").val();
+                        var HidePwd = $("#HidePwd").val();
+                        var pwd = $("#Password").val();
+                        var npwd = $("#NPassword").val();
+                        var rpwd = $("#RPassword").val();
+                        //非空验证
+                        if (pwd == "" || npwd == "" || rpwd == "") {
+                            layer.msg("密码不得为空"), {
+                                zindex: 1000,
+                                offset: '450px',
+                                icon: 1
+                            };
+                            return;
+                        }
+                        //比较验证
+                        else if (HidePwd != pwd) {
+                            layer.msg("原密码不正确"), {
+                                zindex: 1200,
+                                offset: '450px',
+                                icon: 1
+                            };
+                            return;
+                        }
+                        //比较验证
+                        else if (npwd != rpwd) {
+                            layer.msg("两次密码不一致不同"), {
+                                zindex: 1400,
+                                offset: '450px',
+                                icon: 1
+                            };
+                            return;
+                        }
+
+                        $.ajax({
+                            type: "post",
+                            url: "/Users/Updatepwd",
+                            dataType: "json",
+                            data: {
+                                id: HideId,
+                                Pwd: npwd,
+                            }, success: function (data) {
+                                if (data == true) {
+                                    layer.msg("密码修改成功", {
+                                        zindex: 1400,
+                                        offset: '450px',
+                                        icon: 1
+                                    });
+                                    layer.closeAll();
+                                }
+                                else {
+                                    layer.msg("密码修改失败，密码错误", {
+                                        zIndex: 1000
+                                    });
+                                }
+                            }
+                        })
+                    }
+                    , content: $("#models")
+                });
+            })
+        }
+
+
+
+    </script>
+</head>
+<body>
+    <div class="layui-layout layui-layout-admin">
+        @* 水平导航菜单 *@
+        <div class="layui-header header header-demo" winter1>
+            <div class="layui-main">
+                <ul class="layui-nav">
+                    <li class="layui-nav-item">
+                        <a href="">控制台<span class="layui-badge">9</span></a>
+                    </li>
+                    <li class="layui-nav-item">
+                        <a href="">个人中心<span class="layui-badge-dot"></span></a>
+                    </li>
+                    <li class="layui-nav-item" lay-unselect="">
+                        <a id="usename" href="javascript:;">
+                            <img src="//t.cn/RCzsdCq" class="layui-nav-img">
+                            @((Session["user"] as OilManage.Models.Staff).Name)
+                        </a>
+                        <dl class="layui-nav-child">
+                            <dd><a onclick="Updateinfo()">修改信息</a></dd>
+                            <dd><a href="javascript:;">安全管理</a></dd>
+                            <dd><a href="/Login/Index">退出登录</a></dd>
+                        </dl>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        @* 垂直导航菜单 *@
+        <div class="layui-side layui-bg-black">
+            <div class="layui-side-scroll">
+                <div class="layui-logo" lay-href="/MainPage/Main">
+                    <span>OSMS</span>
+                </div>
+                <!-- 左侧导航区域（可配合layui已有的垂直导航） -->
+                <ul class="layui-nav layui-nav-tree layui-inline" lay-filter="test">
+                    @foreach (var app in ViewBag.Parent)
+                    {
+                    <li class="layui-nav-item">
+                        <a href="javascript:;">@app.Name</a>
+                        @*<span id="Title" value="app.Id " class="layui-span">@app.Name</span>*@
+                        <dl class="layui-nav-child">
+                            @foreach (var Cli in ViewBag.Chiren)
+                            {
+                                if (Cli.ParentId == app.Id)
+                                {
+                                    <dd><a href="@Cli.Url" target="main_self_frame">@Cli.Name</a></dd>
+                                }
+                            }
+                        </dl>
+                    </li>
+                    }
+
+                    }
+                    }
+                </ul>
+
+            </div>
+        </div>
+    </div>
+
+    <div id="content" style="position:relative; left:200px; top:0px; height:860px;" class="layui-body">
+        <div class="layadmin-tabsbody-item layui-show">
+            <iframe id="firmID" style="width:100%; height:900px; width:1100px;" frameborder="0" class="layadmin-iframe" name="main_self_frame" ></iframe>
+            </div>
+        </div>
+
+        @*修改密码*@
+        <div id="models" hidden="hidden" style="z-index:100">
+            <div class="layui-form-item">
+                <form class="layui-form layui-form-pane">
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">原密码:</label>
+                        <div class="layui-input-block">
+                            <input id="Password" type="text" name="username" lay-verify="required" lay-reqtext="密码是必填项，岂能为空？" placeholder="请输入密码" autocomplete="off" class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">新密码</label>
+                        <div class="layui-input-block">
+                            <input id="NPassword" type="text" name="username" lay-verify="required" lay-reqtext="密码是必填项，岂能为空？" placeholder="请输入密码" autocomplete="off" class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">重复密码</label>
+                        <div class="layui-input-block">
+                            <input id="RPassword" type="text" name="username" lay-verify="required" lay-reqtext="密码是必填项，岂能为空？" placeholder="请输入密码" autocomplete="off" class="layui-input">
+                        </div>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+        <input id="HideId" value="@((Session["user"] as OilManage.Models.Staff).Id)" hidden="hidden" />
+        <input id="HidePwd" value="@((Session["user"] as OilManage.Models.Staff).Password)" hidden="hidden" />
+
+
+</body>
+</html>

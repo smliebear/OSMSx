@@ -1,0 +1,150 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>StaffRole</title>
+    <link href="~/Content/layuiadmin/layui/css/layui.css" rel="stylesheet" />
+    <script src="~/Scripts/jquery-3.3.1.js"></script>
+    <script src="~/Content/layuiadmin/layui/layui.js"></script>
+
+    <script>
+        Select();
+        var tables;
+        //查询表格
+        function Select() {
+            layui.use(['table', 'laydate', 'form'], function () {
+                var table = layui.table, laydate = layui.laydate;
+                //时间表格
+
+                var form = layui.form; //只有执行了这一步，部分表单元素才会自动修饰成功
+
+                //加载表格
+                tables = table.render({
+                    elem: '#test'
+                    ,toolbar:false //开启头部工具栏，并为其绑定左侧模板
+                     ,url: '/Staff/StaffRoleRead'
+                    , title: '用户数据表'
+                    , cellMinWidth: 80 //全局定义常规单元格的最小宽度，layui 2.2.1 新增
+                    , even: true
+                    , cols: [[
+                        { field: 'Id', title: 'ID', sort: true, hide: true }
+                        , { field: 'Name', width: '25%', title: '用户名', fixed: 'left' }
+                        , { field: 'No', width: '25%', title: '编号', sort: true }
+                        , {
+                            field: 'Sex', width: '25%', title: '性别'
+                            , templet: function (d) {
+                                if (d.Sex != false)
+                                    return '男';
+                                else {
+                                    return '女';
+                                }
+                            }
+                        }
+                        , { fixed: 'right', title: '操作', toolbar: '#barDemo', width: '25%' }
+                    ]],
+                    page: {
+                        layout: ['limit', 'count', 'prev', 'page', 'next', 'skip'] //自定义分页布局
+                        //,curr: 5 //设定初始在第 5 页
+                        , groups: 1 //只显示 1 个连续页码
+                        , first: false //不显示首页
+                        , last: false //不显示尾页
+                    }
+                });
+           
+            });
+
+            //编辑弹框
+            layui.use('table', function () {
+                var table = layui.table;
+                //监听行工具事件
+                table.on('tool(test)', function (obj) {
+                    var data = obj.data;
+                    if (obj.event === 'edit') {
+                        EditRole(data.Id);
+                    }
+                });
+
+            })
+        }
+
+        //设置角色
+        function EditRole(Id) {
+            layui.use('layer', function () { //独立版的layer无需执行这一句
+                var $ = layui.jquery, layer = layui.layer//独立版的layer无需执行这一句
+                //角色管理查询
+
+                //触发事件
+                layer.open({
+                    type: 2
+                    , offset: '20px'
+                    , title: "设置角色" //不显示标题栏
+                    , closeBtn: false
+                    , area: ['900px', '500px']
+                    , content: "/Role/RoleIndex?Choice=true&UId=" + Id + ""
+                    , shade: 0.8
+                    , id: 'Id' //设定一个id，防止重复弹出
+                    , resize: false
+                    , btnAlign: 'c'
+                    , moveType: 1 //拖拽模式，0或者1 
+
+                })
+            })
+        }
+
+        //模糊查询
+        function LikeSelect() {
+            var input = document.getElementById("No");
+            var No = input.value;
+            var input = document.getElementById("Name");
+            var Name = input.value;
+            // var table = layui.table;
+            tables.reload({
+                where: {
+                    No: No,
+                    Name: Name
+                }
+            })
+
+        }
+
+    </script>
+</head>
+<body>
+    <div class="layui-layer-title layui-bg-blue" style="padding-left: 5px;">
+        <label>系统设置 </label>
+        <i class="layui-icon"></i>
+        <label>用户(员工)角色组</label>
+        <button type="button" class="layui-btn layui-btn-sm" data-method="notice"><i class="layui-icon" onclick="RoleAdd()">添加</i></button>
+    </div>
+
+    <div class=" layui-form-item">
+        <div class="layui-inline" pane>
+            <label class="layui-form-label">角色名称:</label>
+            <div class="layui-input-inline">
+                <input id="No" type="text" name="No" lay-verify="title" autocomplete="off" class="layui-input" value="">
+            </div>
+            <label class="layui-form-label">角色代码:</label>
+            <div class="layui-input-inline">
+                <input id="Name" type="text" name="Name" lay-verify="title" autocomplete="off" class="layui-input" value="">
+            </div>
+            <button type="button" class="layui-btn layui-icon layui-bg-blue" data-method="notice"><i onclick="LikeSelect()">&#xe615;查询</i></button>
+        </div>
+    </div>
+
+    <table class="layui-hide" id="test" lay-filter="test"></table>
+
+    @*右侧图标，在页面隐藏*@
+    <script type="text/html" id="barDemo">
+        <a class="layui-btn layui-btn-xs" lay-event="edit">设置角色</a>
+
+    </script>
+
+    <input id="Hide" hidden="hidden" />
+</body>
+</html>

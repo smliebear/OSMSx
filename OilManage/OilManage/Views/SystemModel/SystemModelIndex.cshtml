@@ -1,0 +1,106 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>OrganizationIndex</title>
+    <link href="~/Content/design/css/layui.css" rel="stylesheet" />
+    <script src="~/Scripts/jquery-3.3.1.min.js"></script>
+    <script src="~/Content/design/layui.js"></script>
+    <style>
+        body {
+            width: 100%;
+        }
+    </style>
+
+    <script>
+        var editObj = null, ptable = null, treeGrid = null, tableId = 'treeTable', layer = null;
+
+        layui.config({
+            base: '/Content/design/extend/'
+        }).extend({
+            treeGrid: 'treeGrid'
+        }).use(['jquery', 'treeGrid', 'layer', 'laydate'], function () {
+            var $ = layui.jquery;
+            treeGrid = layui.treeGrid;//很重要
+            layer = layui.layer;
+            laydate = layui.laydate;
+            ptable = treeGrid.render({
+                id: tableId
+                , elem: '#test'
+                , isOpenDefault: false//节点默认是展开还是折叠【默认展开】
+                , idField: 'Id'
+                , url: '/SystemModel/SystemModelRead'
+                , cellMinWidth: 100
+                , treeId: 'Id'//树形id字段名称
+                , treeUpId: 'Pid'//树形父id字段名称
+                , treeShowName: 'Name'//以树形式显示的字段
+                , type: 'get'
+                , cols: [[
+                    { type: 'checkbox', sort: true}
+                    , { field: 'Name', width: 200, title: '组织机构名称' }
+                    , { field: 'Code', title: '代码', width: 200 }
+                ]]
+                , parseData: function (res) {//数据加载后回调
+                    return res;
+                }
+                , page: false
+            });
+            //重载
+            var url = location.search;
+            var Id = url.split("=")[2];
+            $("#hidesy").val(Id);
+            treeGrid.query(tableId, {
+                where: {
+                    Id: url.split("=")[2]
+                }
+            });
+            });
+
+        function BtnChoice() {
+            //获取角色ID
+            var table = layui.table; var layer = layui.layer;
+            var strId = "";
+            //拼接RoleId字符串
+            var checkStatus = treeGrid.checkStatus(tableId)
+                , data = checkStatus.data;
+            for (var i = 0; i < data.length; i++) {
+                strId += data[i].Id + ",";
+            };
+            $.ajax({
+                type: "post",
+                url: "/SystemModel/SystemModelChoice",
+                dataType: "json",
+                zIndex: 500,
+                data: {
+                    Id: strId,
+                    RoleId: $("#hidesy").val(),
+                }
+            })
+            parent.layer.closeAll();
+        }
+    </script>
+</head>
+<body>
+    <div class="layui-layer-title layui-bg-blue" style="padding-left: 5px;">
+        <label>基础信息维护 </label>
+        <i class="layui-icon"></i>
+        <label>组织机构管理</label>
+    </div>
+    @if (ViewBag.Choice == "yes")
+    {
+        <button type="button" class="layui-btn layui-btn-sm" lay-event="edit" onclick="BtnChoice()"><i class="layui-icon">保存</i></button>
+    }
+    <div style="height: 100%">
+        <table id="test" lay-filter="treeTable"></table>
+    </div>
+    <input id="hidesy" type="text" hidden="hidden" />
+
+
+</body>
+</html>
