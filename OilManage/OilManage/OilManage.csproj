@@ -172,6 +172,7 @@
     <Compile Include="Controllers\ApproverController.cs" />
     <Compile Include="Controllers\JobController.cs" />
     <Compile Include="Controllers\LeaveApproveController.cs" />
+    <Compile Include="Controllers\LeaveManageController.cs" />
     <Compile Include="Controllers\LoginController.cs" />
     <Compile Include="Controllers\OrganizationController.cs" />
     <Compile Include="Controllers\RoleController.cs" />
@@ -725,6 +726,7 @@
     <Content Include="Views\SystemModel\SystemModelIndex.cshtml" />
     <Content Include="Views\LeaveApprove\LeaveApproveIndex.cshtml" />
     <Content Include="Views\Role\RoleIndex.cshtml" />
+    <Content Include="Views\LeaveManage\Index.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
