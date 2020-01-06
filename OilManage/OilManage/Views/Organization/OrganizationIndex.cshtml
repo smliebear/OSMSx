@@ -48,9 +48,9 @@
                 , treeShowName: 'Name'//以树形式显示的字段
                 , cols: [[
                     { type: 'checkbox', sort: true }
-                    ,{ field: 'Name', edit: 'text', width: 200, title: '组织机构名称' }
-                    , { field: 'Code', title: '代码', width: 200 }
-                    , { field: 'Leve', title: '区域级别', width: 200,
+                    ,{ field: 'Name', edit: 'text', title: '组织机构名称' }
+                    , { field: 'Code', title: '代码'}
+                    , { field: 'Leve', title: '区域级别',
                         templet: function (d) {
                             if (d.Leve == 0) {
                                 return '总部';
@@ -66,9 +66,9 @@
                     , { width: 100, title: '操作', align: 'center',width: 200
                     , templet: function (d) {
                         var html = '';
-                        var addBtn = '<a class="layui-btn layui-btn-primary layui-btn-xs" lay-event="add">添加</a>';
+                        var addBtn = '<a class="layui-btn layui-btn-normal layui-btn-xs" lay-event="add">添加</a>';
                         var delBtn = '<a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除</a>';
-                        var EditBtn = '<a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="edit">修改</a>';
+                        var EditBtn = '<a class="layui-btn layui-btn-warm layui-btn-xs" lay-event="edit">修改</a>';
                         return addBtn + delBtn + EditBtn;
                     }
                     }

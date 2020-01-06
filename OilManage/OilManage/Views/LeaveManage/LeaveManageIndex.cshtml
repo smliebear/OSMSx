@@ -1,0 +1,131 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>LeaveManageIndex</title>
+    <link href="~/Content/layuiadmin/layui/css/layui.css" rel="stylesheet" />
+    <script src="~/Scripts/jquery-3.3.1.js"></script>
+    <script src="~/Content/layuiadmin/layui/layui.js"></script>
+    <script>
+
+        Select();
+        var tables;
+        function Select() {
+            layui.use(['table', 'laydate', 'form'], function () {
+                var table = layui.table, laydate = layui.laydate;
+                //时间表格d
+                var form = layui.form; //只有执行了这一步，部分表单元素才会自动修饰成功
+                laydate.render({
+                    elem: '#CreateTime'
+                });
+                //加载表格
+                tables = table.render({
+                    elem: '#test'
+                    , toolbar: true //开启头部工具栏，并为其绑定左侧模板
+                    , url: '/LeaveApprove/LeaveApproveRead'
+                    , title: '用户数据表'
+                    , cellMinWidth: 80 //全局定义常规单元格的最小宽度，layui 2.2.1 新增
+                    , even: true
+                    , cols: [[
+                        { field: 'Id',  title: 'ID', sort: true, hide: true }
+                        , { field: 'No', title: '编号', sort: true }
+                        , { field: 'StaffName', title: '用户名' }
+                        , { field: 'JobName', title: '岗位' }
+                        , { field: 'JobId',  title: '岗位ID', hide: true }
+                        , {
+                            field: 'LeaveType', width: 100, title: '离职类别'
+                            , templet: function (d) {
+                                if (d.LeaveType == 1)
+                                    return '辞职';
+                                else {
+                                    return '辞退';
+                                }
+                            }
+                        }
+                        , { field: 'Reason', title: '离职原因', width: 150, hide: true}
+                        , { field: 'CreateTime', title: '申请离职日期', width: 150, hide: true    }
+                        , { field: 'HandoverSatffId', title: '工作交接人Id', width: 150, hide: true }
+                        , { field: 'ApplyPersonId', title: '工作交接人Id', width: 150, hide: true }
+                        , { field: 'ExplanationHandover', title: '请求人', width: 150, hide: true }
+                        , { fixed: 'right', title: '操作', toolbar: '#barDemo', width: 150  }
+
+                    ]],
+                    page: {
+                        layout: ['limit', 'count', 'prev', 'page', 'next', 'skip'] //自定义分页布局
+                        //,curr: 5 //设定初始在第 5 页
+                        , groups: 1 //只显示 1 个连续页码
+                        , first: false //不显示首页
+                        , last: false //不显示尾页
+                    }
+                });
+
+                //编辑弹框
+                layui.use('table', function () {
+                    var table = layui.table;
+                    //监听行工具事件
+                    table.on('tool(test)', function (obj) { //tool不变
+                        var data = obj.data;
+                        if (obj.event === 'edit') {
+                            LeaveUpdate(data.Id, data.StaffName, data.JobName, data.JobId, data.LeaveType, data.Reason, data.ExplanationHandover, data.HandoverSatffId, data.CreateTime);
+                        }
+                    });
+
+                });
+
+                $("#btnJob").on("click", function () {
+                    layer.open({
+                        type: 2,
+                        content: "/Job/JobIndex?Choice=true",
+                        area: ["850px", "500px"],
+                        title: "选择职位",
+                        end: function (Job) {
+
+                        }
+                    });
+                    return false;
+                })
+
+                $("#btnperson").on("click", function () {
+                    layer.open({
+                        type: 2,
+                        content: "/Staff/Index?Choice=true",
+                        area: ["850px", "500px"],
+                        title: "选择职位",
+                        end: function (Job) {
+
+                        }
+                    });
+                    return false;
+                })
+            })
+        }
+
+
+    </script>
+</head>
+<body>
+    <div class="layui-layer-title layui-bg-blue" style="padding-left: 5px;">
+        <label>加油站日常 </label>
+        <i class="layui-icon"></i>
+        <label>员工离职申请</label>
+        <button type="button" class="layui-btn layui-btn-sm" data-method="notice"><i class="layui-icon" onclick="LeaveAdd()">添加离职信息</i></button>
+    </div>
+
+    <div>
+        <table class="layui-hide" id="test" lay-filter="test"></table>
+    </div>
+
+    <script type="text/html" id="barDemo">
+        <a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a>
+        
+    </script>
+
+  
+</body>
+</html>

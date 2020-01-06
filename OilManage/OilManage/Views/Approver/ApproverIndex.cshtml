@@ -33,13 +33,13 @@
                     }
                     , id: 'Id'
                     , cellMinWidth: 80 //全局定义常规单元格的最小宽度，layui 2.2.1 新增
-                    , width: 1000
+                    , width: 1200
                     , even: true
                     , cols: [[
                         { field: 'Id', title: 'ID', sort: true, hide: true }
-                        , { field: 'JobCode', width: '15%', title: '职位代码' }
+                        , { field: 'JobCode', title: '职位代码' }
                         , {
-                            field: 'AreaLeve', width: '15%', title: '区域级别', templet: function (d) {
+                            field: 'AreaLeve', title: '区域级别', templet: function (d) {
                                 if (d.AreaLeve == 0) {
                                     return '总部';
                                 } else if (d.AreaLeve == 1) {
@@ -51,13 +51,13 @@
                                 }
                             }
                         }
-                        , { field: 'Discrible', width: '15%', title: '操作对象描述	' }
+                        , { field: 'Discrible', title: '操作对象描述	' }
                         , {
-                            field: 'Order', width: '15%', title: '发起或审批顺序', sort: true
+                            field: 'Order', title: '发起或审批顺序', sort: true
 
                         }
-                        , { field: 'pDiscrible', width: '15%', title: '审批所在表', hide: true }
-                        , { field: 'ExecuteMethod', width: '15%', title: '审批所在表', hide: true }
+                        , { field: 'pDiscrible', title: '审批所在表', hide: true }
+                        , { field: 'ExecuteMethod', title: '审批所在表', hide: true }
 
                         , { fixed: 'right', title: '操作', toolbar: '#barDemo', width: '30%' }
                     ]],

@@ -9,7 +9,7 @@ namespace OilManage.Controllers
     public class LeaveManageController : Controller
     {
         // GET: LeaveManage
-        public ActionResult Index()     
+        public ActionResult LeaveManageIndex()     
         {
             return View();
         }

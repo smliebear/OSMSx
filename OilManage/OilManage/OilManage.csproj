@@ -726,7 +726,7 @@
     <Content Include="Views\SystemModel\SystemModelIndex.cshtml" />
     <Content Include="Views\LeaveApprove\LeaveApproveIndex.cshtml" />
     <Content Include="Views\Role\RoleIndex.cshtml" />
-    <Content Include="Views\LeaveManage\Index.cshtml" />
+    <Content Include="Views\LeaveManage\LeaveManageIndex.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />

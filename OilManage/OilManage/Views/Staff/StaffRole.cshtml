@@ -34,10 +34,9 @@
                     , even: true
                     , cols: [[
                         { field: 'Id', title: 'ID', sort: true, hide: true }
-                        , { field: 'Name', width: '25%', title: '用户名', fixed: 'left' }
-                        , { field: 'No', width: '25%', title: '编号', sort: true }
-                        , {
-                            field: 'Sex', width: '25%', title: '性别'
+                        , { field: 'Name', title: '用户名', fixed: 'left' }
+                        , { field: 'No', title: '编号', sort: true }
+                        , { field: 'Sex', title: '性别'
                             , templet: function (d) {
                                 if (d.Sex != false)
                                     return '男';
@@ -46,7 +45,7 @@
                                 }
                             }
                         }
-                        , { fixed: 'right', title: '操作', toolbar: '#barDemo', width: '25%' }
+                        , { fixed: 'right', title: '操作', toolbar: '#barDemo'}
                     ]],
                     page: {
                         layout: ['limit', 'count', 'prev', 'page', 'next', 'skip'] //自定义分页布局

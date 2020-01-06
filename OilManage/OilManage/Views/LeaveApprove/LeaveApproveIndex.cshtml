@@ -33,13 +33,13 @@
                     , cellMinWidth: 80 //全局定义常规单元格的最小宽度，layui 2.2.1 新增
                     , even: true
                     , cols: [[
-                        { field: 'Id', width: 120, title: 'ID', sort: true, hide: true }
-                        , { field: 'No', width: 180, title: '编号', sort: true }
-                        , { field: 'StaffName', width: 120, title: '用户名' }
-                        , { field: 'JobName', width: 120, title: '岗位' }
-                        , { field: 'JobId', width: 120, title: '岗位ID', hide: true }
+                        { field: 'Id', title: 'ID', sort: true, hide: true }
+                        , { field: 'No', title: '编号', sort: true }
+                        , { field: 'StaffName', title: '用户名' }
+                        , { field: 'JobName', title: '岗位' }
+                        , { field: 'JobId', title: '岗位ID', hide: true }
                         , {
-                            field: 'LeaveType', width: 100, title: '离职类别'
+                            field: 'LeaveType', title: '离职类别'
                             , templet: function (d) {
                                 if (d.LeaveType == 1)
                                     return '辞职';
@@ -48,12 +48,12 @@
                                 }
                             }
                         }
-                        , { field: 'Reason', title: '离职原因', width: 150, hide: true}
-                        , { field: 'CreateTime', title: '申请离职日期', width: 150, hide: true    }
-                        , { field: 'HandoverSatffId', title: '工作交接人Id', width: 150, hide: true }
-                        , { field: 'ApplyPersonId', title: '工作交接人Id', width: 150, hide: true }
-                        , { field: 'ExplanationHandover', title: '请求人', width: 150, hide: true }
-                        , { fixed: 'right', title: '操作', toolbar: '#barDemo', width: 150  }
+                        , { field: 'Reason', title: '离职原因', hide: true}
+                        , { field: 'CreateTime', title: '申请离职日期', hide: true    }
+                        , { field: 'HandoverSatffId', title: '工作交接人Id', hide: true }
+                        , { field: 'ApplyPersonId', title: '工作交接人Id', hide: true }
+                        , { field: 'ExplanationHandover', title: '请求人', hide: true }
+                        , { fixed: 'right', title: '操作', toolbar: '#barDemo'  }
                         
                     ]],
                     page: {
