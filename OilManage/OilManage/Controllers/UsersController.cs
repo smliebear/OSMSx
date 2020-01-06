@@ -1,11 +1,11 @@
-﻿using OilManage.Models;
+﻿using Microsoft.Ajax.Utilities;
+using OilManage.Models;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Entity;
 using System.Data.Entity.Infrastructure;
 using System.Linq;
-
 using System.Web;
 using System.Web.Mvc;
 
@@ -14,21 +14,19 @@ namespace OilManage.Controllers
     public class UsersController : Controller
     {
         private Model1 db = new Model1();
+        
         // GET: Users
         public ActionResult Index()
         {
             Staff s = Session["user"] as Staff;
-            Guid Id = s.Id;
-            //var list = from sr in db.StaffRole
-            //           join rrm in db.RoleResourceModule on sr.RoleId equals rrm.RoleId into pt
-            //           from p in pt.DefaultIfEmpty()
-            //           where (sr.StaffId==Id)
-            //           select new {p.ResourceModuleId  };
-           
-            //var Syid = list.SingleOrDefault().ResourceModuleId;
-            //staff -staffrole - role -rolemodel -  system  id-staffid-roleid-syid-
-            ViewBag.Parent = db.SystemResourceModule.Where(r => r.ParentId == null );
-            ViewBag.Chiren = db.SystemResourceModule.Where(r => r.ParentId != null );
+
+            var baseCtrler = DependencyResolver.Current.GetService<BaseController>();
+            Models.Staff user = Session["user"] as Models.Staff;
+            //Session["Job"] = db.Job.Where(r => r.Id == user.JobId);
+            ViewBag.username = user.Name;
+            List<Models.SystemResourceModule> Sredata = baseCtrler.GetSystemResources(user.Id);
+            ViewBag.Parent = Sredata.Where(r => r.ParentId == null );
+            ViewBag.Chiren = Sredata.Where(r => r.ParentId != null );
             return View();
         }
 
@@ -49,5 +47,7 @@ namespace OilManage.Controllers
             return Json(i > 0, JsonRequestBehavior.AllowGet);
 
         }
+
+
     }
 }

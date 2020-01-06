@@ -170,6 +170,7 @@
     <Compile Include="App_Start\FilterConfig.cs" />
     <Compile Include="App_Start\RouteConfig.cs" />
     <Compile Include="Controllers\ApproverController.cs" />
+    <Compile Include="Controllers\BaseController.cs" />
     <Compile Include="Controllers\JobController.cs" />
     <Compile Include="Controllers\LeaveApproveController.cs" />
     <Compile Include="Controllers\LeaveManageController.cs" />

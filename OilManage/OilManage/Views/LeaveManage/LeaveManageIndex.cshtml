@@ -72,37 +72,56 @@
                     table.on('tool(test)', function (obj) { //tool不变
                         var data = obj.data;
                         if (obj.event === 'edit') {
-                            LeaveUpdate(data.Id, data.StaffName, data.JobName, data.JobId, data.LeaveType, data.Reason, data.ExplanationHandover, data.HandoverSatffId, data.CreateTime);
+                            ManageStep();
                         }
                     });
 
                 });
 
-                $("#btnJob").on("click", function () {
-                    layer.open({
-                        type: 2,
-                        content: "/Job/JobIndex?Choice=true",
-                        area: ["850px", "500px"],
-                        title: "选择职位",
-                        end: function (Job) {
+            })
+        }
 
-                        }
-                    });
-                    return false;
-                })
+        function ManageStep() {
+            layui.use('layer', function () { //独立版的layer无需执行这一句
+                var $ = layui.jquery, layer = layui.layer;//独立版的layer无需执行这一句
+                empty();
+                //触发事件
+                layer.open({
+                    type: 1
+                    , offset: '20px'
+                    , title: "添加员工基本信息" //不显示标题栏
+                    , closeBtn: false
+                    , area: '700px;'
+                    , content: $("#models")
+                    , shade: 0.8
+                    , id: 'Id' //设定一个id，防止重复弹出
+                    , resize: false
+                    , moveType: 1 //拖拽模式，0或者1
+                    , yes: function (index, layero) {
+                        $.ajax({
+                            type: "post",
+                            url: "/Job/JobAdd",
+                            dataType: "json",
+                            zIndex: 500,
+                            data: {
+                                Name: $("#Name").val(),
+                                Code: $("#Code").val(),
+                                CreateTime: $("#CreateTime").val(),
+                                UpdateTime: $("#UpdateTime").val(),
+                            }, success: function (data) {
+                                if (data == true) {
+                                    
+                                    Select();
 
-                $("#btnperson").on("click", function () {
-                    layer.open({
-                        type: 2,
-                        content: "/Staff/Index?Choice=true",
-                        area: ["850px", "500px"],
-                        title: "选择职位",
-                        end: function (Job) {
-
-                        }
-                    });
-                    return false;
-                })
+                                }
+                                else {
+         
+                                }
+                            }
+                        })
+                       
+                    }
+                });
             })
         }
 
@@ -123,8 +142,8 @@
 
     <script type="text/html" id="barDemo">
         <a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a>
-        
     </script>
+
 
   
 </body>
